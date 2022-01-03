@@ -1,19 +1,21 @@
 package azurestack
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
+	"hash/crc32"
+	"log"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-azure-helpers/authentication"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/mutexkv"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			// TODO: deprecate this local key in favour of `endpoint` in the futures
@@ -118,13 +120,13 @@ func Provider() terraform.ResourceProvider {
 		},
 	}
 
-	p.ConfigureFunc = providerConfigure(p)
+	p.ConfigureContextFunc = providerConfigure(p)
 
 	return p
 }
 
-func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
-	return func(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		builder := authentication.Builder{
 			SubscriptionID:                d.Get("subscription_id").(string),
 			ClientID:                      d.Get("client_id").(string),
@@ -142,23 +144,23 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 		}
 		config, err := builder.Build()
 		if err != nil {
-			return nil, fmt.Errorf("Error building ARM Client: %+v", err)
+			return nil, diag.Errorf("Error building ARM Client: %+v", err)
 		}
 
 		skipCredentialsValidation := d.Get("skip_credentials_validation").(bool)
 		skipProviderRegistration := d.Get("skip_provider_registration").(bool)
 		client, err := getArmClient(config, p.TerraformVersion, skipProviderRegistration)
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
 
-		client.StopContext = p.StopContext()
-
-		// replaces the context between tests
-		p.MetaReset = func() error {
-			client.StopContext = p.StopContext()
-			return nil
+		//lint:ignore SA1019 SDKv2 migration - staticcheck's own linter directives are currently being ignored under golanci-lint
+		stopCtx, ok := schema.StopContext(ctx) //nolint:staticcheck
+		if !ok {
+			stopCtx = ctx
 		}
+
+		client.StopContext = stopCtx
 
 		if !skipCredentialsValidation {
 			// List all the available providers and their registration state to avoid unnecessary
@@ -166,7 +168,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			ctx := client.StopContext
 			providerList, err := client.providersClient.List(ctx, nil, "")
 			if err != nil {
-				return nil, fmt.Errorf("Unable to list provider registration status, it is possible that this is due to invalid "+
+				return nil, diag.Errorf("Unable to list provider registration status, it is possible that this is due to invalid "+
 					"credentials or the service principal does not have permission to use the Resource Manager API, Azure "+
 					"error: %s", err)
 			}
@@ -174,7 +176,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			if !skipProviderRegistration {
 				err = ensureResourceProvidersAreRegistered(ctx, client.providersClient, providerList.Values(), requiredResourceProviders())
 				if err != nil {
-					return nil, err
+					return nil, diag.FromErr(err)
 				}
 			}
 		}
@@ -184,7 +186,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 }
 
 // armMutexKV is the instance of MutexKV for ARM resources
-var armMutexKV = mutexkv.NewMutexKV()
+var armMutexKV = NewMutexKV()
 
 // Resource group names can be capitalised, but we store them in lowercase.
 // Use a custom diff function to avoid creation of new resources.
@@ -235,4 +237,66 @@ func isBase64Encoded(data string) bool {
 func userDataDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	oldValue := userDataStateFunc(old)
 	return oldValue == new
+}
+
+// MutexKV is a simple key/value store for arbitrary mutexes. It can be used to
+// serialize changes across arbitrary collaborators that share knowledge of the
+// keys they must serialize on.
+//
+// The initial use case is to let aws_security_group_rule resources serialize
+// their access to individual security groups based on SG ID.
+type MutexKV struct {
+	lock  sync.Mutex
+	store map[string]*sync.Mutex
+}
+
+// Locks the mutex for the given key. Caller is responsible for calling Unlock
+// for the same key
+func (m *MutexKV) Lock(key string) {
+	log.Printf("[DEBUG] Locking %q", key)
+	m.get(key).Lock()
+	log.Printf("[DEBUG] Locked %q", key)
+}
+
+// Unlock the mutex for the given key. Caller must have called Lock for the same key first
+func (m *MutexKV) Unlock(key string) {
+	log.Printf("[DEBUG] Unlocking %q", key)
+	m.get(key).Unlock()
+	log.Printf("[DEBUG] Unlocked %q", key)
+}
+
+// Returns a mutex for the given key, no guarantee of its lock status
+func (m *MutexKV) get(key string) *sync.Mutex {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	mutex, ok := m.store[key]
+	if !ok {
+		mutex = &sync.Mutex{}
+		m.store[key] = mutex
+	}
+	return mutex
+}
+
+// Returns a properly initialized MutexKV
+func NewMutexKV() *MutexKV {
+	return &MutexKV{
+		store: make(map[string]*sync.Mutex),
+	}
+}
+
+// HashCodeString hashes a string to a unique hashcode.
+//
+// crc32 returns a uint32, but for our use we need
+// and non negative integer. Here we cast to an integer
+// and invert it if the result is negative.
+func HashCodeString(s string) int {
+	v := int(crc32.ChecksumIEEE([]byte(s)))
+	if v >= 0 {
+		return v
+	}
+	if -v >= 0 {
+		return -v
+	}
+	// v == MinInt
+	return 0
 }

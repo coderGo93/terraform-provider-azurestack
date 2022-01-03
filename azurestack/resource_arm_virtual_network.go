@@ -8,8 +8,7 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
@@ -305,7 +304,7 @@ func resourceAzureSubnetHash(v interface{}) int {
 	if v, ok := m["security_group"]; ok {
 		buf.WriteString(v.(string))
 	}
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func getExistingSubnet(ctx context.Context, resGroup string, vnetName string, subnetName string, meta interface{}) (*network.Subnet, error) {

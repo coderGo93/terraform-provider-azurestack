@@ -1,6 +1,7 @@
 package azurestack
 
 import (
+	"context"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -20,7 +21,7 @@ func TestAccAzureStackEnsureRequiredResourceProvidersAreRegistered(t *testing.T)
 	}
 
 	client := armClient.providersClient
-	ctx := testAccProvider.StopContext()
+	ctx := context.Background()
 	providerList, err := client.List(ctx, nil, "")
 	if err != nil {
 		t.Fatalf("Unable to list provider registration status, it is possible that this is due to invalid "+

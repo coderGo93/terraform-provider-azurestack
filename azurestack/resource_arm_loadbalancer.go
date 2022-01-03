@@ -7,10 +7,9 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/validate"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/azure"
@@ -80,7 +79,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 								string(network.Static),
 							}, true),
 							StateFunc:        ignoreCaseStateFunc,
-							DiffSuppressFunc: suppress.CaseDifference,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"load_balancer_rules": {

@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
@@ -53,7 +52,7 @@ func resourceArmPublicIp() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				StateFunc:        ignoreCaseStateFunc,
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(network.Dynamic),
 					string(network.Static),

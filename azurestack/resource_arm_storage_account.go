@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/storage/mgmt/storage"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
@@ -355,8 +355,6 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error updating Azure Storage Account type %q: %+v", storageAccountName, err)
 		}
-
-		d.SetPartial("account_replication_type")
 	}
 
 	// if d.HasChange("access_tier") {
@@ -387,8 +385,6 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error updating Azure Storage Account tags %q: %+v", storageAccountName, err)
 		}
-
-		d.SetPartial("tags")
 	}
 
 	if d.HasChange("enable_blob_encryption") {
@@ -408,8 +404,6 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 			opts.Encryption.Services.Blob = &storage.EncryptionService{
 				Enabled: utils.Bool(enableEncryption),
 			}
-
-			d.SetPartial("enable_blob_encryption")
 		}
 
 		_, err := client.Update(ctx, resourceGroupName, storageAccountName, opts)

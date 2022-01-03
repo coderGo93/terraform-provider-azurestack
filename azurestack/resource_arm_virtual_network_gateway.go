@@ -2,15 +2,14 @@ package azurestack
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/azure"
 )
@@ -47,7 +46,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 					string(network.VirtualNetworkGatewayTypeExpressRoute),
 					string(network.VirtualNetworkGatewayTypeVpn),
 				}, true),
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"vpn_type": {
@@ -59,7 +58,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 					string(network.RouteBased),
 					string(network.PolicyBased),
 				}, true),
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"enable_bgp": {
@@ -78,7 +77,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 			"sku": {
 				Type:             schema.TypeString,
 				Required:         true,
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(network.VirtualNetworkGatewaySkuTierBasic),
 					string(network.VirtualNetworkGatewaySkuTierStandard),
@@ -115,7 +114,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							ValidateFunc:     validateArmVirtualNetworkGatewaySubnetId,
-							DiffSuppressFunc: suppress.CaseDifference,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"public_ip_address_id": {
@@ -710,7 +709,7 @@ func hashVirtualNetworkGatewayRootCert(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["public_cert_data"].(string)))
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func hashVirtualNetworkGatewayRevokedCert(v interface{}) int {
@@ -720,7 +719,7 @@ func hashVirtualNetworkGatewayRevokedCert(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["thumbprint"].(string)))
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceGroupAndVirtualNetworkGatewayFromId(virtualNetworkGatewayId string) (string, string, error) {
@@ -782,7 +781,7 @@ func validateArmVirtualNetworkGatewayExpressRouteSku() schema.SchemaValidateFunc
 	}, true)
 }
 
-func resourceArmVirtualNetworkGatewayCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {
+func resourceArmVirtualNetworkGatewayCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 
 	if vpnClient, ok := diff.GetOk("vpn_client_configuration"); ok {
 		if vpnClientConfig, ok := vpnClient.([]interface{})[0].(map[string]interface{}); ok {

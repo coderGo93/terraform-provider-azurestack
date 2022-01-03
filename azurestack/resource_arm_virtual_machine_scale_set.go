@@ -7,11 +7,9 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/structure"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/azure"
 )
@@ -51,7 +49,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"type": {
 							Type:             schema.TypeString,
 							Required:         true,
-							DiffSuppressFunc: suppress.CaseDifference,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 							ValidateFunc: validation.StringInSlice([]string{
 								"SystemAssigned",
 							}, true),
@@ -80,7 +78,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Computed:         true,
-							DiffSuppressFunc: suppress.CaseDifference,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"capacity": {
@@ -97,7 +95,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					"Windows_Client",
 					"Windows_Server",
@@ -607,7 +605,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"settings": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							ValidateFunc:     validation.ValidateJsonString,
+							ValidateFunc:     validation.StringIsJSON,
 							DiffSuppressFunc: structure.SuppressJsonDiff,
 						},
 
@@ -615,7 +613,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Sensitive:        true,
-							ValidateFunc:     validation.ValidateJsonString,
+							ValidateFunc:     validation.StringIsJSON,
 							DiffSuppressFunc: structure.SuppressJsonDiff,
 						},
 					},
@@ -1215,7 +1213,7 @@ func resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash(v interfa
 		}
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceArmVirtualMachineScaleSetSkuHash(v interface{}) int {
@@ -1230,7 +1228,7 @@ func resourceArmVirtualMachineScaleSetSkuHash(v interface{}) int {
 		}
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) int {
@@ -1244,7 +1242,7 @@ func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) in
 		}
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceArmVirtualMachineScaleSetNetworkConfigurationHash(v interface{}) int {
@@ -1255,7 +1253,7 @@ func resourceArmVirtualMachineScaleSetNetworkConfigurationHash(v interface{}) in
 		// buf.WriteString(fmt.Sprintf("%t-", m["primary"].(bool)))
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceArmVirtualMachineScaleSetOsProfileLinuxConfigHash(v interface{}) int {
@@ -1265,7 +1263,7 @@ func resourceArmVirtualMachineScaleSetOsProfileLinuxConfigHash(v interface{}) in
 		buf.WriteString(fmt.Sprintf("%t-", m["disable_password_authentication"].(bool)))
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceArmVirtualMachineScaleSetOsProfileWindowsConfigHash(v interface{}) int {
@@ -1280,7 +1278,7 @@ func resourceArmVirtualMachineScaleSetOsProfileWindowsConfigHash(v interface{}) 
 		}
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceArmVirtualMachineScaleSetExtensionHash(v interface{}) int {
@@ -1309,7 +1307,7 @@ func resourceArmVirtualMachineScaleSetExtensionHash(v interface{}) int {
 		}
 	}
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func expandVirtualMachineScaleSetSku(d *schema.ResourceData) (*compute.Sku, error) {
