@@ -10,8 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/validate"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmLoadBalancerNatPool() *schema.Resource {
@@ -54,19 +53,19 @@ func resourceArmLoadBalancerNatPool() *schema.Resource {
 			"frontend_port_start": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				ValidateFunc: validate.PortNumber,
+				ValidateFunc: validation.IsPortNumber,
 			},
 
 			"frontend_port_end": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				ValidateFunc: validate.PortNumber,
+				ValidateFunc: validation.IsPortNumber,
 			},
 
 			"backend_port": {
 				Type:         schema.TypeInt,
 				Required:     true,
-				ValidateFunc: validate.PortNumber,
+				ValidateFunc: validation.IsPortNumber,
 			},
 
 			"frontend_ip_configuration_name": {

@@ -149,7 +149,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
 
 		skipCredentialsValidation := d.Get("skip_credentials_validation").(bool)
 		skipProviderRegistration := d.Get("skip_provider_registration").(bool)
-		client, err := getArmClient(config, p.TerraformVersion, skipProviderRegistration)
+		client, err := getArmClient(ctx, config, p.TerraformVersion, skipProviderRegistration)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}

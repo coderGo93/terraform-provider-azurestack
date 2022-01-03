@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func dataSourceArmStorageAccount() *schema.Resource {
@@ -50,7 +50,6 @@ func dataSourceArmStorageAccount() *schema.Resource {
 			"custom_domain": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {

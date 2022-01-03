@@ -14,14 +14,14 @@ func TestAccAzureStackEnsureRequiredResourceProvidersAreRegistered(t *testing.T)
 		return
 	}
 
+	ctx := context.Background()
 	// this test intentionally checks all the RP's are registered - so this is intentional
-	armClient, err := getArmClient(config, "0.0.0", true)
+	armClient, err := getArmClient(ctx, config, "0.0.0", true)
 	if err != nil {
 		t.Fatalf("Error building ARM Client: %+v", err)
 	}
 
 	client := armClient.providersClient
-	ctx := context.Background()
 	providerList, err := client.List(ctx, nil, "")
 	if err != nil {
 		t.Fatalf("Unable to list provider registration status, it is possible that this is due to invalid "+

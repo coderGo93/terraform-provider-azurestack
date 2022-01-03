@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/meta"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
@@ -101,7 +101,7 @@ func setUserAgent(client *autorest.Client, tfVersion string) {
 
 // getArmClient is a helper method which returns a fully instantiated
 // *ArmClient based on the Config's current settings.
-func getArmClient(authCfg *authentication.Config, tfVersion string, skipProviderRegistration bool) (*ArmClient, error) {
+func getArmClient(ctx context.Context, authCfg *authentication.Config, tfVersion string, skipProviderRegistration bool) (*ArmClient, error) {
 	env, err := authentication.LoadEnvironmentFromUrl(authCfg.CustomResourceManagerEndpoint)
 	if err != nil {
 		return nil, err
@@ -129,14 +129,14 @@ func getArmClient(authCfg *authentication.Config, tfVersion string, skipProvider
 	endpoint := env.ResourceManagerEndpoint
 
 	// Instead of the same endpoint use token audience to get the correct token.
-	auth, err := authCfg.GetAuthorizationToken(sender, oauth, env.TokenAudience)
+	auth, err := authCfg.GetADALToken(ctx, sender, oauth, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
 
 	// Graph Endpoints
 	graphEndpoint := env.GraphEndpoint
-	graphAuth, err := authCfg.GetAuthorizationToken(sender, oauth, graphEndpoint)
+	graphAuth, err := authCfg.GetADALToken(ctx, sender, oauth, graphEndpoint)
 	if err != nil {
 		return nil, err
 	}
