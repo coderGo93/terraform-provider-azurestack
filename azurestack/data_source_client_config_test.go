@@ -16,8 +16,8 @@ func TestAccDataSourceAzureStackClientConfig_basic(t *testing.T) {
 	subscriptionId := os.Getenv("ARM_SUBSCRIPTION_ID")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckArmClientConfig_basic,

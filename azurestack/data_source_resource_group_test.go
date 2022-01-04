@@ -15,8 +15,8 @@ func TestAccDataSourceAzureStackResourceGroup_basic(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceAzureStackResourceGroupBasic(name, location),

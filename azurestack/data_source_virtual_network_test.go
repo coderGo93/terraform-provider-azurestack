@@ -16,8 +16,8 @@ func TestAccDataSourceArmVirtualNetwork_basic(t *testing.T) {
 	config := testAccDataSourceArmVirtualNetwork_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -44,8 +44,8 @@ func TestAccDataSourceArmVirtualNetwork_peering(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceArmVirtualNetwork_peering(ri, location),
