@@ -149,9 +149,9 @@ func TestAccAzureStackStorageBlob_basic(t *testing.T) {
 	config := testAccAzureStackStorageBlob_basic(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -169,9 +169,9 @@ func TestAccAzureStackStorageBlob_disappears(t *testing.T) {
 	config := testAccAzureStackStorageBlob_basic(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -206,9 +206,9 @@ func TestAccAzureStackStorageBlobBlock_source(t *testing.T) {
 	config := testAccAzureStackStorageBlobBlock_source(ri, rs1, sourceBlob.Name(), testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -265,9 +265,9 @@ func TestAccAzureStackStorageBlobPage_source(t *testing.T) {
 	config := testAccAzureStackStorageBlobPage_source(ri, rs, sourceBlob.Name(), testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -300,9 +300,9 @@ func TestAccAzureStackStorageBlob_source_uri(t *testing.T) {
 	config := testAccAzureStackStorageBlob_source_uri(ri, rs, sourceBlob.Name(), testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

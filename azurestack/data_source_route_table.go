@@ -1,9 +1,10 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
@@ -11,7 +12,7 @@ import (
 
 func dataSourceArmRouteTable() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmRouteTableRead,
+		ReadContext: dataSourceArmRouteTableRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -64,9 +65,8 @@ func dataSourceArmRouteTable() *schema.Resource {
 	}
 }
 
-func dataSourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmRouteTableRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routeTablesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	resourceGroup := d.Get("resource_group_name").(string)
@@ -74,9 +74,9 @@ func dataSourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	resp, err := client.Get(ctx, resourceGroup, name, "")
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
-			return fmt.Errorf("Error: Route Table %q (Resource Group %q) was not found", name, resourceGroup)
+			return diag.Errorf("Error: Route Table %q (Resource Group %q) was not found", name, resourceGroup)
 		}
-		return fmt.Errorf("Error making Read request on Azure Route Table %q: %+v", name, err)
+		return diag.Errorf("Error making Read request on Azure Route Table %q: %+v", name, err)
 	}
 
 	d.SetId(*resp.ID)
@@ -89,11 +89,11 @@ func dataSourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error
 
 	if props := resp.RouteTablePropertiesFormat; props != nil {
 		if err := d.Set("route", flattenRouteTableDataSourceRoutes(props.Routes)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		if err := d.Set("subnets", flattenRouteTableDataSourceSubnets(props.Subnets)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 

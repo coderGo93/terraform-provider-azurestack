@@ -15,9 +15,9 @@ func TestAccDataSourceAzureStackRouteTable_basic(t *testing.T) {
 	config := testAccDataSourceAzureStackRouteTable_basic(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackRouteTableDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackRouteTableDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -37,9 +37,9 @@ func TestAccDataSourceAzureStackRouteTable_singleRoute(t *testing.T) {
 	config := testAccDataSourceAzureStackRouteTable_singleRoute(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackRouteTableDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackRouteTableDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -62,9 +62,9 @@ func TestAccDataSourceAzureStackRouteTable_multipleRoutes(t *testing.T) {
 	config := testAccDataSourceAzureStackRouteTable_multipleRoutes(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackRouteTableDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackRouteTableDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

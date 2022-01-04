@@ -17,9 +17,9 @@ func TestAccDataSourceAzureStackStorageAccount_basic(t *testing.T) {
 	config := testAccDataSourceAzureStackStorageAccount_basicWithDataSource(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,

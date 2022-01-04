@@ -1,9 +1,10 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
@@ -11,12 +12,12 @@ import (
 
 func resourceArmNetworkSecurityRule() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmNetworkSecurityRuleCreate,
-		Read:   resourceArmNetworkSecurityRuleRead,
-		Update: resourceArmNetworkSecurityRuleCreate,
-		Delete: resourceArmNetworkSecurityRuleDelete,
+		CreateContext: resourceArmNetworkSecurityRuleCreate,
+		ReadContext:   resourceArmNetworkSecurityRuleRead,
+		UpdateContext: resourceArmNetworkSecurityRuleCreate,
+		DeleteContext: resourceArmNetworkSecurityRuleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -169,9 +170,8 @@ func resourceArmNetworkSecurityRule() *schema.Resource {
 	}
 }
 
-func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkSecurityRuleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secRuleClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	nsgName := d.Get("network_security_group_name").(string)
@@ -280,34 +280,33 @@ func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, nsgName, name, rule)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating Network Security Rule %q (NSG %q / Resource Group %q): %+v", name, nsgName, resGroup, err)
+		return diag.Errorf("Error Creating/Updating Network Security Rule %q (NSG %q / Resource Group %q): %+v", name, nsgName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion of Network Security Rule %q (NSG %q / Resource Group %q): %+v", name, nsgName, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Network Security Rule %q (NSG %q / Resource Group %q): %+v", name, nsgName, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, nsgName, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Security Group Rule %s/%s (resource group %s) ID", nsgName, name, resGroup)
+		return diag.Errorf("Cannot read Security Group Rule %s/%s (resource group %s) ID", nsgName, name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmNetworkSecurityRuleRead(d, meta)
+	return resourceArmNetworkSecurityRuleRead(ctx, d, meta)
 }
 
-func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkSecurityRuleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secRuleClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	networkSGName := id.Path["networkSecurityGroups"]
@@ -319,7 +318,7 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Network Security Rule %q: %+v", sgRuleName, err)
+		return diag.Errorf("Error making Read request on Azure Network Security Rule %q: %+v", sgRuleName, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -347,13 +346,12 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceArmNetworkSecurityRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkSecurityRuleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secRuleClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	nsgName := id.Path["networkSecurityGroups"]
@@ -364,13 +362,13 @@ func resourceArmNetworkSecurityRuleDelete(d *schema.ResourceData, meta interface
 
 	future, err := client.Delete(ctx, resGroup, nsgName, sgRuleName)
 	if err != nil {
-		return fmt.Errorf("Error Deleting Network Security Rule %q (NSG %q / Resource Group %q): %+v", sgRuleName, nsgName, resGroup, err)
+		return diag.Errorf("Error Deleting Network Security Rule %q (NSG %q / Resource Group %q): %+v", sgRuleName, nsgName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for the deletion of Network Security Rule %q (NSG %q / Resource Group %q): %+v", sgRuleName, nsgName, resGroup, err)
+		return diag.Errorf("Error waiting for the deletion of Network Security Rule %q (NSG %q / Resource Group %q): %+v", sgRuleName, nsgName, resGroup, err)
 	}
 
-	return err
+	return diag.FromErr(err)
 }

@@ -12,6 +12,7 @@ import (
 
 var testAccProviders map[string]*schema.Provider
 var testAccProvider *schema.Provider
+var testAccProvidersFactories map[string]func() (*schema.Provider, error)
 
 func init() {
 	testAccProvider = Provider()

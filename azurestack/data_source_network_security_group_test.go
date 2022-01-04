@@ -15,9 +15,9 @@ func TestAccDataSourceAzureStackNetworkSecurityGroup_basic(t *testing.T) {
 	config := testAccDataSourceAzureStackNetworkSecurityGroupBasic(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -38,9 +38,9 @@ func TestAccDataSourceAzureStackNetworkSecurityGroup_rules(t *testing.T) {
 	config := testAccDataSourceAzureStackNetworkSecurityGroupWithRules(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -70,9 +70,9 @@ func TestAccDataSourceAzureStackNetworkSecurityGroup_tags(t *testing.T) {
 	config := testAccDataSourceAzureStackNetworkSecurityGroupTags(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

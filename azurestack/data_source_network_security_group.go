@@ -1,15 +1,16 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func dataSourceArmNetworkSecurityGroup() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmNetworkSecurityGroupRead,
+		ReadContext: dataSourceArmNetworkSecurityGroupRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -132,9 +133,8 @@ func dataSourceArmNetworkSecurityGroup() *schema.Resource {
 	}
 }
 
-func dataSourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmNetworkSecurityGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secGroupClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resourceGroup := d.Get("resource_group_name").(string)
 	name := d.Get("name").(string)
@@ -144,7 +144,7 @@ func dataSourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interfac
 		if utils.ResponseWasNotFound(resp.Response) {
 			d.SetId("")
 		}
-		return fmt.Errorf("Error making Read request on Network Security Group %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return diag.Errorf("Error making Read request on Network Security Group %q (Resource Group %q): %+v", name, resourceGroup, err)
 	}
 
 	d.SetId(*resp.ID)
@@ -158,7 +158,7 @@ func dataSourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interfac
 	if props := resp.SecurityGroupPropertiesFormat; props != nil {
 		flattenedRules := flattenNetworkSecurityRules(props.SecurityRules)
 		if err := d.Set("security_rule", flattenedRules); err != nil {
-			return fmt.Errorf("Error flattening `security_rule`: %+v", err)
+			return diag.Errorf("Error flattening `security_rule`: %+v", err)
 		}
 	}
 

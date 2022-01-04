@@ -1,8 +1,9 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
@@ -10,7 +11,7 @@ import (
 
 func dataSourceArmPublicIP() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmPublicIPRead,
+		ReadContext: dataSourceArmPublicIPRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -45,9 +46,8 @@ func dataSourceArmPublicIP() *schema.Resource {
 	}
 }
 
-func dataSourceArmPublicIPRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmPublicIPRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).publicIPClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup := d.Get("resource_group_name").(string)
 	name := d.Get("name").(string)
@@ -55,9 +55,9 @@ func dataSourceArmPublicIPRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := client.Get(ctx, resGroup, name, "")
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
-			return fmt.Errorf("Error: Public IP %q (Resource Group %q) was not found", name, resGroup)
+			return diag.Errorf("Error: Public IP %q (Resource Group %q) was not found", name, resGroup)
 		}
-		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
+		return diag.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
 	}
 
 	d.SetId(*resp.ID)

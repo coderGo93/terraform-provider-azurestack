@@ -1,11 +1,12 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
@@ -13,12 +14,12 @@ import (
 
 func resourceArmAvailabilitySet() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmAvailabilitySetCreate,
-		Read:   resourceArmAvailabilitySetRead,
-		Update: resourceArmAvailabilitySetCreate,
-		Delete: resourceArmAvailabilitySetDelete,
+		CreateContext: resourceArmAvailabilitySetCreate,
+		ReadContext:   resourceArmAvailabilitySetRead,
+		UpdateContext: resourceArmAvailabilitySetCreate,
+		DeleteContext: resourceArmAvailabilitySetDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -60,9 +61,8 @@ func resourceArmAvailabilitySet() *schema.Resource {
 	}
 }
 
-func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmAvailabilitySetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).availSetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for AzureStack Availability Set creation.")
 
@@ -95,21 +95,20 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 
 	resp, err := client.CreateOrUpdate(ctx, resGroup, name, availSet)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(*resp.ID)
 
-	return resourceArmAvailabilitySetRead(d, meta)
+	return resourceArmAvailabilitySetRead(ctx, d, meta)
 }
 
-func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmAvailabilitySetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).availSetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["availabilitySets"]
@@ -120,7 +119,7 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Availability Set %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on Azure Availability Set %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	availSet := *resp.AvailabilitySetProperties
@@ -141,18 +140,17 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceArmAvailabilitySetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmAvailabilitySetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).availSetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["availabilitySets"]
 
 	_, err = client.Delete(ctx, resGroup, name)
 
-	return err
+	return diag.FromErr(err)
 }

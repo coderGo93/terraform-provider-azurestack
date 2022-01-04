@@ -22,9 +22,9 @@ func TestAccAzureStackLoadBalancerProbe_basic(t *testing.T) {
 		subscriptionID, ri, ri, probeName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerProbe_basic(ri, probeName, testLocation()),
@@ -51,9 +51,9 @@ func TestAccAzureStackLoadBalancerProbe_removal(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerProbe_basic(ri, probeName, location),
@@ -80,9 +80,9 @@ func TestAccAzureStackLoadBalancerProbe_update(t *testing.T) {
 	probe2Name := fmt.Sprintf("probe-%d", acctest.RandInt())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerProbe_multipleProbes(ri, probeName, probe2Name, testLocation()),
@@ -112,9 +112,9 @@ func TestAccAzureStackLoadBalancerProbe_updateProtocol(t *testing.T) {
 	probeName := fmt.Sprintf("probe-%d", ri)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerProbe_updateProtocolBefore(ri, probeName, testLocation()),
@@ -142,9 +142,9 @@ func TestAccAzureStackLoadBalancerProbe_disappears(t *testing.T) {
 	probeName := fmt.Sprintf("probe-%d", ri)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerProbe_basic(ri, probeName, testLocation()),

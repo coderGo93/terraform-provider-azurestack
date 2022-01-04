@@ -1,12 +1,14 @@
 package azurestack
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
@@ -14,12 +16,12 @@ import (
 
 func resourceArmNetworkInterface() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmNetworkInterfaceCreateUpdate,
-		Read:   resourceArmNetworkInterfaceRead,
-		Update: resourceArmNetworkInterfaceCreateUpdate,
-		Delete: resourceArmNetworkInterfaceDelete,
+		CreateContext: resourceArmNetworkInterfaceCreateUpdate,
+		ReadContext:   resourceArmNetworkInterfaceRead,
+		UpdateContext: resourceArmNetworkInterfaceCreateUpdate,
+		DeleteContext: resourceArmNetworkInterfaceDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -198,9 +200,8 @@ func resourceArmNetworkInterface() *schema.Resource {
 	}
 }
 
-func resourceArmNetworkInterfaceCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkInterfaceCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).ifaceClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for AzureStack Network Interface creation.")
 
@@ -225,7 +226,7 @@ func resourceArmNetworkInterfaceCreateUpdate(d *schema.ResourceData, meta interf
 
 		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		azureStackLockByName(networkSecurityGroupName, networkSecurityGroupResourceName)
@@ -262,7 +263,7 @@ func resourceArmNetworkInterfaceCreateUpdate(d *schema.ResourceData, meta interf
 
 	ipConfigs, subnetnToLock, vnnToLock, sgErr := expandAzureStackNetworkInterfaceIpConfigurations(d)
 	if sgErr != nil {
-		return fmt.Errorf("Error Building list of Network Interface IP Configurations: %+v", sgErr)
+		return diag.Errorf("Error Building list of Network Interface IP Configurations: %+v", sgErr)
 	}
 
 	azureStackLockMultipleByName(subnetnToLock, subnetResourceName)
@@ -286,34 +287,33 @@ func resourceArmNetworkInterfaceCreateUpdate(d *schema.ResourceData, meta interf
 	fmt.Println(string(data))
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, iface)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name, "")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read NIC %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read NIC %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmNetworkInterfaceRead(d, meta)
+	return resourceArmNetworkInterfaceRead(ctx, d, meta)
 }
 
-func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkInterfaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).ifaceClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["networkInterfaces"]
@@ -324,7 +324,7 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on Azure Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -353,13 +353,13 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 			}
 
 			if err := d.Set("private_ip_addresses", addresses); err != nil {
-				return fmt.Errorf("Error setting `private_ip_addresses`: %+v", err)
+				return diag.Errorf("Error setting `private_ip_addresses`: %+v", err)
 			}
 		}
 
 		if iface.IPConfigurations != nil {
 			if err := d.Set("ip_configuration", flattenNetworkInterfaceIPConfigurations(iface.IPConfigurations)); err != nil {
-				return fmt.Errorf("Error setting `ip_configuration`: %+v", err)
+				return diag.Errorf("Error setting `ip_configuration`: %+v", err)
 			}
 		}
 
@@ -392,13 +392,12 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkInterfaceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).ifaceClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["networkInterfaces"]
@@ -407,7 +406,7 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 		networkSecurityGroupId := v.(string)
 		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		azureStackLockByName(networkSecurityGroupName, networkSecurityGroupResourceName)
@@ -424,7 +423,7 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 		subnet_id := data["subnet_id"].(string)
 		subnetId, err := parseAzureResourceID(subnet_id)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		subnetName := subnetId.Path["subnets"]
 		if !sliceContainsValue(subnetNamesToLock, subnetName) {
@@ -445,15 +444,15 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error deleting Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for the deletion of Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for the deletion of Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
-	return err
+	return diag.FromErr(err)
 }
 
 func flattenNetworkInterfaceIPConfigurations(ipConfigs *[]network.InterfaceIPConfiguration) []interface{} {

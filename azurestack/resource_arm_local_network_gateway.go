@@ -1,22 +1,23 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
 	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmLocalNetworkGateway() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLocalNetworkGatewayCreate,
-		Read:   resourceArmLocalNetworkGatewayRead,
-		Update: resourceArmLocalNetworkGatewayCreate,
-		Delete: resourceArmLocalNetworkGatewayDelete,
+		CreateContext: resourceArmLocalNetworkGatewayCreate,
+		ReadContext:   resourceArmLocalNetworkGatewayRead,
+		UpdateContext: resourceArmLocalNetworkGatewayCreate,
+		DeleteContext: resourceArmLocalNetworkGatewayDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -73,9 +74,8 @@ func resourceArmLocalNetworkGateway() *schema.Resource {
 	}
 }
 
-func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLocalNetworkGatewayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).localNetConnClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	location := azureStackNormalizeLocation(d.Get("location").(string))
@@ -86,7 +86,7 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 
 	bgpSettings, err := expandLocalNetworkGatewayBGPSettings(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	tags := d.Get("tags").(map[string]interface{})
@@ -106,34 +106,33 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, gateway)
 	if err != nil {
-		return fmt.Errorf("Error creating Local Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error creating Local Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion of Local Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Local Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Local Network Gateway ID %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read Local Network Gateway ID %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmLocalNetworkGatewayRead(d, meta)
+	return resourceArmLocalNetworkGatewayRead(ctx, d, meta)
 }
 
-func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLocalNetworkGatewayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).localNetConnClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndLocalNetworkGatewayFromId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err := client.Get(ctx, resGroup, name)
@@ -143,7 +142,7 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 			return nil
 		}
 
-		return fmt.Errorf("Error reading the state of Local Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error reading the state of Local Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -162,7 +161,7 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 		}
 		flattenedSettings := flattenLocalNetworkGatewayBGPSettings(props.BgpSettings)
 		if err := d.Set("bgp_settings", flattenedSettings); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -171,13 +170,12 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLocalNetworkGatewayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).localNetConnClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndLocalNetworkGatewayFromId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	future, err := client.Delete(ctx, resGroup, name)
@@ -186,7 +184,7 @@ func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface
 			return nil
 		}
 
-		return fmt.Errorf("Error issuing delete request for local network gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error issuing delete request for local network gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
@@ -195,7 +193,7 @@ func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface
 			return nil
 		}
 
-		return fmt.Errorf("Error waiting for completion of local network gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for completion of local network gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	return nil

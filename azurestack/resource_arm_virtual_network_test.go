@@ -16,9 +16,9 @@ func TestAccAzureStackVirtualNetwork_basic(t *testing.T) {
 	config := testAccAzureStackVirtualNetwork_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -41,9 +41,9 @@ func TestAccAzureStackVirtualNetwork_disappears(t *testing.T) {
 	config := testAccAzureStackVirtualNetwork_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -65,9 +65,9 @@ func TestAccAzureStackVirtualNetwork_withTags(t *testing.T) {
 	postConfig := testAccAzureStackVirtualNetwork_withTagsUpdated(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -105,9 +105,9 @@ func TestAccAzureStackVirtualNetwork_bug373(t *testing.T) {
 	config := testAccAzureStackVirtualNetwork_bug373(rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

@@ -1,9 +1,10 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
@@ -11,12 +12,12 @@ import (
 
 func resourceArmRoute() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmRouteCreateUpdate,
-		Read:   resourceArmRouteRead,
-		Update: resourceArmRouteCreateUpdate,
-		Delete: resourceArmRouteDelete,
+		CreateContext: resourceArmRouteCreateUpdate,
+		ReadContext:   resourceArmRouteRead,
+		UpdateContext: resourceArmRouteCreateUpdate,
+		DeleteContext: resourceArmRouteDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -63,9 +64,8 @@ func resourceArmRoute() *schema.Resource {
 	}
 }
 
-func resourceArmRouteCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmRouteCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	rtName := d.Get("route_table_name").(string)
@@ -91,32 +91,31 @@ func resourceArmRouteCreateUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, rtName, name, route)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating Route %q (Route Table %q / Resource Group %q): %+v", name, rtName, resGroup, err)
+		return diag.Errorf("Error Creating/Updating Route %q (Route Table %q / Resource Group %q): %+v", name, rtName, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for completion for Route %q (Route Table %q / Resource Group %q): %+v", name, rtName, resGroup, err)
+		return diag.Errorf("Error waiting for completion for Route %q (Route Table %q / Resource Group %q): %+v", name, rtName, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, rtName, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Route %q/%q (resource group %q) ID", rtName, name, resGroup)
+		return diag.Errorf("Cannot read Route %q/%q (resource group %q) ID", rtName, name, resGroup)
 	}
 	d.SetId(*read.ID)
 
-	return resourceArmRouteRead(d, meta)
+	return resourceArmRouteRead(ctx, d, meta)
 }
 
-func resourceArmRouteRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmRouteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	rtName := id.Path["routeTables"]
@@ -128,7 +127,7 @@ func resourceArmRouteRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Route %q: %+v", routeName, err)
+		return diag.Errorf("Error making Read request on Azure Route %q: %+v", routeName, err)
 	}
 
 	d.Set("name", routeName)
@@ -147,13 +146,12 @@ func resourceArmRouteRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArmRouteDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmRouteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	rtName := id.Path["routeTables"]
@@ -164,11 +162,11 @@ func resourceArmRouteDelete(d *schema.ResourceData, meta interface{}) error {
 
 	future, err := client.Delete(ctx, resGroup, rtName, routeName)
 	if err != nil {
-		return fmt.Errorf("Error deleting Route %q (Route Table %q / Resource Group %q): %+v", routeName, rtName, resGroup, err)
+		return diag.Errorf("Error deleting Route %q (Route Table %q / Resource Group %q): %+v", routeName, rtName, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for deletion of Route %q (Route Table %q / Resource Group %q): %+v", routeName, rtName, resGroup, err)
+		return diag.Errorf("Error waiting for deletion of Route %q (Route Table %q / Resource Group %q): %+v", routeName, rtName, resGroup, err)
 	}
 
 	return nil

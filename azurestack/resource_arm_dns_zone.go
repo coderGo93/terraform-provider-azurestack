@@ -1,22 +1,23 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/services/dns/mgmt/2016-04-01/dns"
 	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmDnsZone() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmDnsZoneCreate,
-		Read:   resourceArmDnsZoneRead,
-		Update: resourceArmDnsZoneCreate,
-		Delete: resourceArmDnsZoneDelete,
+		CreateContext: resourceArmDnsZoneCreate,
+		ReadContext:   resourceArmDnsZoneRead,
+		UpdateContext: resourceArmDnsZoneCreate,
+		DeleteContext: resourceArmDnsZoneDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -50,9 +51,8 @@ func resourceArmDnsZone() *schema.Resource {
 	}
 }
 
-func resourceArmDnsZoneCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmDnsZoneCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).zonesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	resGroup := d.Get("resource_group_name").(string)
@@ -69,25 +69,24 @@ func resourceArmDnsZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	ifNoneMatch := "" // set to empty to allow updates to records after creation
 	resp, err := client.CreateOrUpdate(ctx, resGroup, name, parameters, etag, ifNoneMatch)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if resp.ID == nil {
-		return fmt.Errorf("Cannot read DNS zone %s (resource group %s) ID", name, resGroup)
+		return diag.Errorf("Cannot read DNS zone %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*resp.ID)
 
-	return resourceArmDnsZoneRead(d, meta)
+	return resourceArmDnsZoneRead(ctx, d, meta)
 }
 
-func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmDnsZoneRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	zonesClient := meta.(*ArmClient).zonesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resGroup := id.ResourceGroup
@@ -99,7 +98,7 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading DNS zone %s (resource group %s): %+v", name, resGroup, err)
+		return diag.Errorf("Error reading DNS zone %s (resource group %s): %+v", name, resGroup, err)
 	}
 
 	d.Set("name", name)
@@ -109,7 +108,7 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 	if nameServers := resp.NameServers; nameServers != nil {
 		if err := d.Set("name_servers", *nameServers); err != nil {
-			return fmt.Errorf("Error setting `name_servers`: %+v", err)
+			return diag.Errorf("Error setting `name_servers`: %+v", err)
 		}
 	}
 
@@ -118,13 +117,12 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArmDnsZoneDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmDnsZoneDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).zonesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resGroup := id.ResourceGroup
@@ -136,7 +134,7 @@ func resourceArmDnsZoneDelete(d *schema.ResourceData, meta interface{}) error {
 		if response.WasNotFound(future.Response()) {
 			return nil
 		}
-		return fmt.Errorf("Error deleting DNS zone %s (resource group %s): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting DNS zone %s (resource group %s): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
@@ -144,7 +142,7 @@ func resourceArmDnsZoneDelete(d *schema.ResourceData, meta interface{}) error {
 		if response.WasNotFound(future.Response()) {
 			return nil
 		}
-		return fmt.Errorf("Error deleting DNS zone %s (resource group %s): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting DNS zone %s (resource group %s): %+v", name, resGroup, err)
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -9,16 +10,16 @@ import (
 	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceArmStorageContainer() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmStorageContainerCreate,
-		Read:   resourceArmStorageContainerRead,
-		Exists: resourceArmStorageContainerExists,
-		Delete: resourceArmStorageContainerDelete,
+		CreateContext: resourceArmStorageContainerCreate,
+		ReadContext:   resourceArmStorageContainerRead,
+		DeleteContext: resourceArmStorageContainerDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -81,19 +82,18 @@ func validateArmStorageContainerAccessType(v interface{}, k string) (ws []string
 	return
 }
 
-func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageContainerCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	armClient := meta.(*ArmClient)
-	ctx := armClient.StopContext
 
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
 	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(ctx, resourceGroupName, storageAccountName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !accountExists {
-		return fmt.Errorf("Storage Account %q Not Found", storageAccountName)
+		return diag.Errorf("Storage Account %q Not Found", storageAccountName)
 	}
 
 	name := d.Get("name").(string)
@@ -110,7 +110,7 @@ func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{})
 
 	err = resource.Retry(120*time.Second, checkContainerIsCreated(reference))
 	if err != nil {
-		return fmt.Errorf("Error creating container %q in storage account %q: %s", name, storageAccountName, err)
+		return diag.Errorf("Error creating container %q in storage account %q: %s", name, storageAccountName, err)
 	}
 
 	permissions := storage.ContainerPermissions{
@@ -119,11 +119,11 @@ func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{})
 	permissionOptions := &storage.SetContainerPermissionOptions{}
 	err = reference.SetPermissions(permissions, permissionOptions)
 	if err != nil {
-		return fmt.Errorf("Error setting permissions for container %s in storage account %s: %+v", name, storageAccountName, err)
+		return diag.Errorf("Error setting permissions for container %s in storage account %s: %+v", name, storageAccountName, err)
 	}
 
 	d.SetId(name)
-	return resourceArmStorageContainerRead(d, meta)
+	return resourceArmStorageContainerRead(ctx, d, meta)
 }
 
 func checkContainerIsCreated(reference *storage.Container) func() *resource.RetryError {
@@ -140,16 +140,15 @@ func checkContainerIsCreated(reference *storage.Container) func() *resource.Retr
 
 // resourceAzureStorageContainerRead does all the necessary API calls to
 // read the status of the storage container off Azure.
-func resourceArmStorageContainerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageContainerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	armClient := meta.(*ArmClient)
-	ctx := armClient.StopContext
 
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
 	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(ctx, resourceGroupName, storageAccountName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !accountExists {
 		log.Printf("[DEBUG] Storage account %q not found, removing container %q from state", storageAccountName, d.Id())
@@ -163,7 +162,7 @@ func resourceArmStorageContainerRead(d *schema.ResourceData, meta interface{}) e
 		Timeout: 90,
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to retrieve storage containers in account %q: %s", name, err)
+		return diag.Errorf("Failed to retrieve storage containers in account %q: %s", name, err)
 	}
 
 	var found bool
@@ -189,52 +188,17 @@ func resourceArmStorageContainerRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmStorageContainerExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	armClient := meta.(*ArmClient)
-	ctx := armClient.StopContext
-
-	resourceGroupName := d.Get("resource_group_name").(string)
-	storageAccountName := d.Get("storage_account_name").(string)
-
-	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(ctx, resourceGroupName, storageAccountName)
-	if err != nil {
-		return false, err
-	}
-	if !accountExists {
-		log.Printf("[DEBUG] Storage account %q not found, removing container %q from state", storageAccountName, d.Id())
-		d.SetId("")
-		return false, nil
-	}
-
-	name := d.Get("name").(string)
-
-	log.Printf("[INFO] Checking existence of storage container %q in storage account %q", name, storageAccountName)
-	reference := blobClient.GetContainerReference(name)
-	exists, err := reference.Exists()
-	if err != nil {
-		return false, fmt.Errorf("Error querying existence of storage container %q in storage account %q: %s", name, storageAccountName, err)
-	}
-
-	if !exists {
-		log.Printf("[INFO] Storage container %q does not exist in account %q, removing from state...", name, storageAccountName)
-		d.SetId("")
-	}
-
-	return exists, nil
-}
-
 // resourceAzureStorageContainerDelete does all the necessary API calls to
 // delete a storage container off Azure.
-func resourceArmStorageContainerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageContainerDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	armClient := meta.(*ArmClient)
-	ctx := armClient.StopContext
 
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("storage_account_name").(string)
 
 	blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(ctx, resourceGroupName, storageAccountName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !accountExists {
 		log.Printf("[INFO]Storage Account %q doesn't exist so the container won't exist", storageAccountName)
@@ -247,7 +211,7 @@ func resourceArmStorageContainerDelete(d *schema.ResourceData, meta interface{})
 	reference := blobClient.GetContainerReference(name)
 	deleteOptions := &storage.DeleteContainerOptions{}
 	if _, err := reference.DeleteIfExists(deleteOptions); err != nil {
-		return fmt.Errorf("Error deleting storage container %q from storage account %q: %s", name, storageAccountName, err)
+		return diag.Errorf("Error deleting storage container %q from storage account %q: %s", name, storageAccountName, err)
 	}
 
 	d.SetId("")

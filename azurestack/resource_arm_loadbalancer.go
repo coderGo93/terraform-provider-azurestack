@@ -1,12 +1,12 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -16,13 +16,13 @@ import (
 
 func resourceArmLoadBalancer() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadBalancerCreate,
-		Read:   resourceArmLoadBalancerRead,
-		Update: resourceArmLoadBalancerCreate,
-		Delete: resourceArmLoadBalancerDelete,
+		CreateContext: resourceArmLoadBalancerCreate,
+		ReadContext:   resourceArmLoadBalancerRead,
+		UpdateContext: resourceArmLoadBalancerCreate,
+		DeleteContext: resourceArmLoadBalancerDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -121,9 +121,8 @@ func resourceArmLoadBalancer() *schema.Resource {
 	}
 }
 
-func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for Azure Stack LoadBalancer creation.")
 
@@ -149,20 +148,20 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, loadBalancer)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name, "")
 	if err != nil {
-		return fmt.Errorf("Error Retrieving LoadBalancer %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Retrieving LoadBalancer %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read LoadBalancer %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read LoadBalancer %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
@@ -176,21 +175,21 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for LoadBalancer (%q - Resource Group %q) to become available: %s", name, resGroup, err)
+		return diag.Errorf("Error waiting for LoadBalancer (%q - Resource Group %q) to become available: %s", name, resGroup, err)
 	}
 
-	return resourceArmLoadBalancerRead(d, meta)
+	return resourceArmLoadBalancerRead(ctx, d, meta)
 }
 
-func resourceArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, d.Id(), meta)
 	if err != nil {
-		return fmt.Errorf("Error retrieving Load Balancer by ID %q: %+v", d.Id(), err)
+		return diag.Errorf("Error retrieving Load Balancer by ID %q: %+v", d.Id(), err)
 	}
 	if !exists {
 		d.SetId("")
@@ -232,25 +231,24 @@ func resourceArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceArmLoadBalancerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return errwrap.Wrapf("Error Parsing Azure Resource ID {{err}}", err)
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["loadBalancers"]
 
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error deleting Load Balancer %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting Load Balancer %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for the deleting Load Balancer %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for the deleting Load Balancer %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	return nil

@@ -1,9 +1,10 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -12,12 +13,12 @@ import (
 
 func resourceArmVirtualMachineExtensions() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmVirtualMachineExtensionsCreate,
-		Read:   resourceArmVirtualMachineExtensionsRead,
-		Update: resourceArmVirtualMachineExtensionsCreate,
-		Delete: resourceArmVirtualMachineExtensionsDelete,
+		CreateContext: resourceArmVirtualMachineExtensionsCreate,
+		ReadContext:   resourceArmVirtualMachineExtensionsRead,
+		UpdateContext: resourceArmVirtualMachineExtensionsCreate,
+		DeleteContext: resourceArmVirtualMachineExtensionsDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -78,9 +79,8 @@ func resourceArmVirtualMachineExtensions() *schema.Resource {
 	}
 }
 
-func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualMachineExtensionsCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vmExtensionClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	location := azureStackNormalizeLocation(d.Get("location").(string))
@@ -106,7 +106,7 @@ func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta inte
 	if settingsString := d.Get("settings").(string); settingsString != "" {
 		settings, err := structure.ExpandJsonFromString(settingsString)
 		if err != nil {
-			return fmt.Errorf("unable to parse settings: %s", err)
+			return diag.Errorf("unable to parse settings: %s", err)
 		}
 		extension.VirtualMachineExtensionProperties.Settings = &settings
 	}
@@ -114,41 +114,40 @@ func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta inte
 	if protectedSettingsString := d.Get("protected_settings").(string); protectedSettingsString != "" {
 		protectedSettings, err := structure.ExpandJsonFromString(protectedSettingsString)
 		if err != nil {
-			return fmt.Errorf("unable to parse protected_settings: %s", err)
+			return diag.Errorf("unable to parse protected_settings: %s", err)
 		}
 		extension.VirtualMachineExtensionProperties.ProtectedSettings = &protectedSettings
 	}
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, vmName, name, extension)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	read, err := client.Get(ctx, resGroup, vmName, name, "")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read  Virtual Machine Extension %s (resource group %s) ID", name, resGroup)
+		return diag.Errorf("Cannot read  Virtual Machine Extension %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmVirtualMachineExtensionsRead(d, meta)
+	return resourceArmVirtualMachineExtensionsRead(ctx, d, meta)
 }
 
-func resourceArmVirtualMachineExtensionsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualMachineExtensionsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vmExtensionClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	vmName := id.Path["virtualMachines"]
@@ -160,7 +159,7 @@ func resourceArmVirtualMachineExtensionsRead(d *schema.ResourceData, meta interf
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Virtual Machine Extension %s: %s", name, err)
+		return diag.Errorf("Error making Read request on Virtual Machine Extension %s: %s", name, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -180,7 +179,7 @@ func resourceArmVirtualMachineExtensionsRead(d *schema.ResourceData, meta interf
 			settingsVal := settings.(map[string]interface{})
 			settingsJson, err := structure.FlattenJsonToString(settingsVal)
 			if err != nil {
-				return fmt.Errorf("unable to parse settings from response: %s", err)
+				return diag.Errorf("unable to parse settings from response: %s", err)
 			}
 			d.Set("settings", settingsJson)
 		}
@@ -191,13 +190,12 @@ func resourceArmVirtualMachineExtensionsRead(d *schema.ResourceData, meta interf
 	return nil
 }
 
-func resourceArmVirtualMachineExtensionsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualMachineExtensionsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vmExtensionClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["extensions"]
@@ -205,8 +203,8 @@ func resourceArmVirtualMachineExtensionsDelete(d *schema.ResourceData, meta inte
 
 	future, err := client.Delete(ctx, resGroup, vmName, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return future.WaitForCompletionRef(ctx, client.Client)
+	return diag.FromErr(future.WaitForCompletionRef(ctx, client.Client))
 }

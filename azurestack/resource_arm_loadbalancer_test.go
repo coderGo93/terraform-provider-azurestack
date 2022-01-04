@@ -52,9 +52,9 @@ func TestAccAzureStackLoadBalancer_basic(t *testing.T) {
 	ri := acctest.RandInt()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancer_basic(ri, testLocation()),
@@ -71,9 +71,9 @@ func TestAccAzureStackLoadBalancer_standard(t *testing.T) {
 	ri := acctest.RandInt()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancer_standard(ri, testLocation()),
@@ -92,9 +92,9 @@ func TestAccAzureStackLoadBalancer_frontEndConfig(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancer_frontEndConfig(ri, location),
@@ -128,9 +128,9 @@ func TestAccAzureStackLoadBalancer_tags(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancer_basic(ri, location),

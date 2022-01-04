@@ -1,12 +1,13 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -15,12 +16,12 @@ import (
 
 func resourceArmLoadBalancerNatRule() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadBalancerNatRuleCreateUpdate,
-		Read:   resourceArmLoadBalancerNatRuleRead,
-		Update: resourceArmLoadBalancerNatRuleCreateUpdate,
-		Delete: resourceArmLoadBalancerNatRuleDelete,
+		CreateContext: resourceArmLoadBalancerNatRuleCreateUpdate,
+		ReadContext:   resourceArmLoadBalancerNatRuleRead,
+		UpdateContext: resourceArmLoadBalancerNatRuleCreateUpdate,
+		DeleteContext: resourceArmLoadBalancerNatRuleDelete,
 		Importer: &schema.ResourceImporter{
-			State: loadBalancerSubResourceStateImporter,
+			StateContext: loadBalancerSubResourceStateImporter,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -85,17 +86,16 @@ func resourceArmLoadBalancerNatRule() *schema.Resource {
 	}
 }
 
-func resourceArmLoadBalancerNatRuleCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatRuleCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	loadBalancerID := d.Get("loadbalancer_id").(string)
 	armMutexKV.Lock(loadBalancerID)
 	defer armMutexKV.Unlock(loadBalancerID)
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, loadBalancerID, meta)
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
+		return diag.FromErr(err)
 	}
 	if !exists {
 		d.SetId("")
@@ -105,7 +105,7 @@ func resourceArmLoadBalancerNatRuleCreateUpdate(d *schema.ResourceData, meta int
 
 	newNatRule, err := expandAzureRmLoadBalancerNatRule(d, loadBalancer)
 	if err != nil {
-		return errwrap.Wrapf("Error Expanding NAT Rule {{err}}", err)
+		return diag.FromErr(err)
 	}
 
 	natRules := append(*loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules, *newNatRule)
@@ -121,26 +121,26 @@ func resourceArmLoadBalancerNatRuleCreateUpdate(d *schema.ResourceData, meta int
 	loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules = &natRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
-		return fmt.Errorf("Error Getting LoadBalancer Name and Group: %+v", err)
+		return diag.Errorf("Error Getting LoadBalancer Name and Group: %+v", err)
 	}
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, loadBalancerName, *loadBalancer)
 	if err != nil {
-		return fmt.Errorf("Error Creating / Updating LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error Creating / Updating LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion of Load Balancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Load Balancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, loadBalancerName, "")
 	if err != nil {
-		return fmt.Errorf("Error retrieving LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error retrieving LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
 	}
 
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read LoadBalancer %q (Resource Group %q) ID", loadBalancerName, resGroup)
+		return diag.Errorf("Cannot read LoadBalancer %q (Resource Group %q) ID", loadBalancerName, resGroup)
 	}
 
 	var natRuleId string
@@ -153,7 +153,7 @@ func resourceArmLoadBalancerNatRuleCreateUpdate(d *schema.ResourceData, meta int
 	if natRuleId != "" {
 		d.SetId(natRuleId)
 	} else {
-		return fmt.Errorf("Cannot find created LoadBalancer NAT Rule ID %q", natRuleId)
+		return diag.Errorf("Cannot find created LoadBalancer NAT Rule ID %q", natRuleId)
 	}
 
 	// TODO: is this still needed?
@@ -165,22 +165,22 @@ func resourceArmLoadBalancerNatRuleCreateUpdate(d *schema.ResourceData, meta int
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
+		return diag.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadBalancerNatRuleRead(d, meta)
+	return resourceArmLoadBalancerNatRuleRead(ctx, d, meta)
 }
 
-func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatRuleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	name := id.Path["inboundNatRules"]
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
-		return fmt.Errorf("Error Getting LoadBalancer By ID: %+v", err)
+		return diag.Errorf("Error Getting LoadBalancer By ID: %+v", err)
 	}
 	if !exists {
 		d.SetId("")
@@ -207,7 +207,7 @@ func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}
 		if ipconfiguration := props.FrontendIPConfiguration; ipconfiguration != nil {
 			fipID, err := parseAzureResourceID(*ipconfiguration.ID)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			d.Set("frontend_ip_configuration_name", fipID.Path["frontendIPConfigurations"])
@@ -222,17 +222,16 @@ func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatRuleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	loadBalancerID := d.Get("loadbalancer_id").(string)
 	armMutexKV.Lock(loadBalancerID)
 	defer armMutexKV.Unlock(loadBalancerID)
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, loadBalancerID, meta)
 	if err != nil {
-		return fmt.Errorf("Error Getting LoadBalancer By ID: %+v", err)
+		return diag.Errorf("Error Getting LoadBalancer By ID: %+v", err)
 	}
 	if !exists {
 		d.SetId("")
@@ -250,25 +249,25 @@ func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
-		return fmt.Errorf("Error Getting LoadBalancer Name and Group: %+v", err)
+		return diag.Errorf("Error Getting LoadBalancer Name and Group: %+v", err)
 	}
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, loadBalancerName, *loadBalancer)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q) %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q) %+v", loadBalancerName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for the completion of LoadBalancer updates for %q (Resource Group %q) %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error waiting for the completion of LoadBalancer updates for %q (Resource Group %q) %+v", loadBalancerName, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, loadBalancerName, "")
 	if err != nil {
-		return fmt.Errorf("Error retrieving LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error retrieving LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read LoadBalancer %q (resource group %q) ID", loadBalancerName, resGroup)
+		return diag.Errorf("Cannot read LoadBalancer %q (resource group %q) ID", loadBalancerName, resGroup)
 	}
 
 	return nil

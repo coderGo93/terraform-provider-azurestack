@@ -15,9 +15,9 @@ func TestAccAzureStackTemplateDeployment_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccAzureStackTemplateDeployment_basicMultiple(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -33,9 +33,9 @@ func TestAccAzureStackTemplateDeployment_disappears(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccAzureStackTemplateDeployment_basicSingle(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -54,9 +54,9 @@ func TestAccAzureStackTemplateDeployment_withParams(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccAzureStackTemplateDeployment_withParams(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -74,9 +74,9 @@ func TestAccAzureStackTemplateDeployment_withParamsBody(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testaccAzureStackTemplateDeployment_withParamsBody(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -95,9 +95,9 @@ func TestAccAzureStackTemplateDeployment_withOutputs(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccAzureStackTemplateDeployment_withOutputs(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -118,9 +118,9 @@ func TestAccAzureStackTemplateDeployment_withError(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccAzureStackTemplateDeployment_withError(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:      config,

@@ -1,13 +1,14 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -17,12 +18,12 @@ import (
 
 func resourceArmLoadBalancerRule() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadBalancerRuleCreateUpdate,
-		Read:   resourceArmLoadBalancerRuleRead,
-		Update: resourceArmLoadBalancerRuleCreateUpdate,
-		Delete: resourceArmLoadBalancerRuleDelete,
+		CreateContext: resourceArmLoadBalancerRuleCreateUpdate,
+		ReadContext:   resourceArmLoadBalancerRuleRead,
+		UpdateContext: resourceArmLoadBalancerRuleCreateUpdate,
+		DeleteContext: resourceArmLoadBalancerRuleDelete,
 		Importer: &schema.ResourceImporter{
-			State: loadBalancerSubResourceStateImporter,
+			StateContext: loadBalancerSubResourceStateImporter,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -112,17 +113,16 @@ func resourceArmLoadBalancerRule() *schema.Resource {
 	}
 }
 
-func resourceArmLoadBalancerRuleCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerRuleCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	loadBalancerID := d.Get("loadbalancer_id").(string)
 	armMutexKV.Lock(loadBalancerID)
 	defer armMutexKV.Unlock(loadBalancerID)
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, loadBalancerID, meta)
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
+		return diag.FromErr(err)
 	}
 	if !exists {
 		d.SetId("")
@@ -132,7 +132,7 @@ func resourceArmLoadBalancerRuleCreateUpdate(d *schema.ResourceData, meta interf
 
 	newLbRule, err := expandAzureRmLoadBalancerRule(d, loadBalancer)
 	if err != nil {
-		return errwrap.Wrapf("Error Exanding LoadBalancer Rule {{err}}", err)
+		return diag.FromErr(err)
 	}
 
 	lbRules := append(*loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules, *newLbRule)
@@ -148,25 +148,25 @@ func resourceArmLoadBalancerRuleCreateUpdate(d *schema.ResourceData, meta interf
 	loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules = &lbRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
+		return diag.FromErr(err)
 	}
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, loadBalancerName, *loadBalancer)
 	if err != nil {
-		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
+		return diag.FromErr(err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion for LoadBalancer updates: %+v", err)
+		return diag.Errorf("Error waiting for completion for LoadBalancer updates: %+v", err)
 	}
 
 	read, err := client.Get(ctx, resGroup, loadBalancerName, "")
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer {{err}}", err)
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
+		return diag.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
 	}
 
 	var ruleId string
@@ -177,7 +177,7 @@ func resourceArmLoadBalancerRuleCreateUpdate(d *schema.ResourceData, meta interf
 	}
 
 	if ruleId == "" {
-		return fmt.Errorf("Cannot find created LoadBalancer Rule ID %q", ruleId)
+		return diag.Errorf("Cannot find created LoadBalancer Rule ID %q", ruleId)
 	}
 
 	d.SetId(ruleId)
@@ -190,22 +190,22 @@ func resourceArmLoadBalancerRuleCreateUpdate(d *schema.ResourceData, meta interf
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
+		return diag.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadBalancerRuleRead(d, meta)
+	return resourceArmLoadBalancerRuleRead(ctx, d, meta)
 }
 
-func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerRuleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	name := id.Path["loadBalancingRules"]
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
+		return diag.FromErr(err)
 	}
 	if !exists {
 		d.SetId("")
@@ -239,7 +239,7 @@ func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) e
 		if properties.FrontendIPConfiguration != nil {
 			fipID, err := parseAzureResourceID(*properties.FrontendIPConfiguration.ID)
 			if err != nil {
-				return err
+				return diag.FromErr(err)
 			}
 
 			d.Set("frontend_ip_configuration_name", fipID.Path["frontendIPConfigurations"])
@@ -262,17 +262,16 @@ func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmLoadBalancerRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerRuleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	loadBalancerID := d.Get("loadbalancer_id").(string)
 	armMutexKV.Lock(loadBalancerID)
 	defer armMutexKV.Unlock(loadBalancerID)
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(ctx, loadBalancerID, meta)
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
+		return diag.FromErr(err)
 	}
 	if !exists {
 		d.SetId("")
@@ -290,25 +289,25 @@ func resourceArmLoadBalancerRuleDelete(d *schema.ResourceData, meta interface{})
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
+		return diag.FromErr(err)
 	}
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, loadBalancerName, *loadBalancer)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error Creating/Updating LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion of LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
+		return diag.Errorf("Error waiting for completion of LoadBalancer %q (Resource Group %q): %+v", loadBalancerName, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, loadBalancerName, "")
 	if err != nil {
-		return errwrap.Wrapf("Error Getting LoadBalancer {{err}}", err)
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read ID of LoadBalancer %q (resource group %s)", loadBalancerName, resGroup)
+		return diag.Errorf("Cannot read ID of LoadBalancer %q (resource group %s)", loadBalancerName, resGroup)
 	}
 
 	return nil

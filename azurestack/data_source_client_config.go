@@ -1,16 +1,18 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceArmClientConfig() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmClientConfigRead,
+		ReadContext: dataSourceArmClientConfigRead,
 
 		Schema: map[string]*schema.Schema{
 			"client_id": {
@@ -37,9 +39,8 @@ func dataSourceArmClientConfig() *schema.Resource {
 	}
 }
 
-func dataSourceArmClientConfigRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmClientConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient)
-	ctx := meta.(*ArmClient).StopContext
 
 	var servicePrincipal *graphrbac.ServicePrincipal
 	if client.usingServicePrincipal {
@@ -50,11 +51,11 @@ func dataSourceArmClientConfigRead(d *schema.ResourceData, meta interface{}) err
 		listResult, listErr := spClient.List(ctx, filter)
 
 		if listErr != nil {
-			return fmt.Errorf("Error listing Service Principals: %#v", listErr)
+			return diag.Errorf("Error listing Service Principals: %#v", listErr)
 		}
 
 		if listResult.Values() == nil || len(listResult.Values()) != 1 {
-			return fmt.Errorf("Unexpected Service Principal query result: %#v", listResult.Values())
+			return diag.Errorf("Unexpected Service Principal query result: %#v", listResult.Values())
 		}
 
 		servicePrincipal = &(listResult.Values())[0]

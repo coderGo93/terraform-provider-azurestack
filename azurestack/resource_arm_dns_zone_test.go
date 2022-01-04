@@ -16,9 +16,9 @@ func TestAccAzureStackDnsZone_basic(t *testing.T) {
 	config := testAccAzureStackDnsZone_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackDnsZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackDnsZoneDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -38,9 +38,9 @@ func TestAccAzureStackDnsZone_withTags(t *testing.T) {
 	postConfig := testAccAzureStackDnsZone_withTagsUpdate(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackDnsZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackDnsZoneDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
