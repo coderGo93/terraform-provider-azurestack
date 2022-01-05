@@ -1,27 +1,28 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmPublicIp() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmPublicIpCreate,
-		Read:   resourceArmPublicIpRead,
-		Update: resourceArmPublicIpCreate,
-		Delete: resourceArmPublicIpDelete,
+		CreateContext: resourceArmPublicIpCreate,
+		ReadContext:   resourceArmPublicIpRead,
+		UpdateContext: resourceArmPublicIpCreate,
+		DeleteContext: resourceArmPublicIpDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				id, err := parseAzureResourceID(d.Id())
 				if err != nil {
 					return nil, err
@@ -53,7 +54,7 @@ func resourceArmPublicIp() *schema.Resource {
 				Type:             schema.TypeString,
 				Required:         true,
 				StateFunc:        ignoreCaseStateFunc,
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(network.Dynamic),
 					string(network.Static),
@@ -106,9 +107,8 @@ func resourceArmPublicIp() *schema.Resource {
 	}
 }
 
-func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmPublicIpCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).publicIPClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for AzureStack Public IP creation.")
 
@@ -127,7 +127,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	// Not supported for 2017-03-09 profile
 	// if strings.ToLower(string(sku.Name)) == "standard" {
 	// 	if strings.ToLower(string(ipAllocationMethod)) != "static" {
-	// 		return fmt.Errorf("Static IP allocation must be used when creating Standard SKU public IP addresses.")
+	// 		return diag.Errorf("Static IP allocation must be used when creating Standard SKU public IP addresses.")
 	// 	}
 	// }
 
@@ -168,33 +168,32 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, publicIp)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating Public IP %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Creating/Updating Public IP %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for completion of Public IP %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Public IP %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name, "")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Public IP %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read Public IP %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmPublicIpRead(d, meta)
+	return resourceArmPublicIpRead(ctx, d, meta)
 }
 
-func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmPublicIpRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).publicIPClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["publicIPAddresses"]
@@ -206,7 +205,7 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return fmt.Errorf("Error making Read request on Public IP %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on Public IP %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -238,24 +237,23 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArmPublicIpDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmPublicIpDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).publicIPClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["publicIPAddresses"]
 
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error deleting Public IP %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting Public IP %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for deletion of Public IP %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for deletion of Public IP %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	return nil

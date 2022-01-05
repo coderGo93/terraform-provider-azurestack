@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAzureStackLoadBalancerNatRule_basic(t *testing.T) {
@@ -22,9 +22,9 @@ func TestAccAzureStackLoadBalancerNatRule_basic(t *testing.T) {
 		subscriptionID, ri, ri, natRuleName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatRule_basic(ri, natRuleName, testLocation()),
@@ -50,9 +50,9 @@ func TestAccAzureStackLoadBalancerNatRule_removal(t *testing.T) {
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatRule_basic(ri, natRuleName, testLocation()),
@@ -79,9 +79,9 @@ func TestAccAzureStackLoadBalancerNatRule_update(t *testing.T) {
 	natRule2Name := fmt.Sprintf("NatRule-%d", acctest.RandInt())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatRule_multipleRules(ri, natRuleName, natRule2Name, testLocation()),
@@ -113,9 +113,9 @@ func TestAccAzureStackLoadBalancerNatRule_disappears(t *testing.T) {
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatRule_basic(ri, natRuleName, testLocation()),
@@ -137,9 +137,9 @@ func TestAccAzureStackLoadBalancerNatRule_enableFloatingIP(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatRule_enableFloatingIP(ri, natRuleName, location),
@@ -159,9 +159,9 @@ func TestAccAzureStackLoadBalancerNatRule_disableFloatingIP(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatRule_basic(ri, natRuleName, location),

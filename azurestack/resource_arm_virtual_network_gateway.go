@@ -2,27 +2,27 @@ package azurestack
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/azure"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmVirtualNetworkGateway() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmVirtualNetworkGatewayCreateUpdate,
-		Read:   resourceArmVirtualNetworkGatewayRead,
-		Update: resourceArmVirtualNetworkGatewayCreateUpdate,
-		Delete: resourceArmVirtualNetworkGatewayDelete,
+		CreateContext: resourceArmVirtualNetworkGatewayCreateUpdate,
+		ReadContext:   resourceArmVirtualNetworkGatewayRead,
+		UpdateContext: resourceArmVirtualNetworkGatewayCreateUpdate,
+		DeleteContext: resourceArmVirtualNetworkGatewayDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		CustomizeDiff: resourceArmVirtualNetworkGatewayCustomizeDiff,
@@ -47,7 +47,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 					string(network.VirtualNetworkGatewayTypeExpressRoute),
 					string(network.VirtualNetworkGatewayTypeVpn),
 				}, true),
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"vpn_type": {
@@ -59,7 +59,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 					string(network.RouteBased),
 					string(network.PolicyBased),
 				}, true),
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"enable_bgp": {
@@ -78,7 +78,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 			"sku": {
 				Type:             schema.TypeString,
 				Required:         true,
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(network.VirtualNetworkGatewaySkuTierBasic),
 					string(network.VirtualNetworkGatewaySkuTierStandard),
@@ -115,7 +115,7 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 							Type:             schema.TypeString,
 							Required:         true,
 							ValidateFunc:     validateArmVirtualNetworkGatewaySubnetId,
-							DiffSuppressFunc: suppress.CaseDifference,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"public_ip_address_id": {
@@ -270,9 +270,8 @@ func resourceArmVirtualNetworkGateway() *schema.Resource {
 	}
 }
 
-func resourceArmVirtualNetworkGatewayCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for AzureStack Virtual Network Gateway creation.")
 
@@ -283,7 +282,7 @@ func resourceArmVirtualNetworkGatewayCreateUpdate(d *schema.ResourceData, meta i
 
 	properties, err := getArmVirtualNetworkGatewayProperties(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	gateway := network.VirtualNetworkGateway{
@@ -295,33 +294,32 @@ func resourceArmVirtualNetworkGatewayCreateUpdate(d *schema.ResourceData, meta i
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, gateway)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Creating/Updating AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for completion of AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for completion of AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read AzureStack Virtual Network Gateway %s (resource group %s) ID", name, resGroup)
+		return diag.Errorf("Cannot read AzureStack Virtual Network Gateway %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmVirtualNetworkGatewayRead(d, meta)
+	return resourceArmVirtualNetworkGatewayRead(ctx, d, meta)
 }
 
-func resourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayFromId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err := client.Get(ctx, resGroup, name)
@@ -330,7 +328,7 @@ func resourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -359,17 +357,17 @@ func resourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 		}
 
 		if err := d.Set("ip_configuration", flattenArmVirtualNetworkGatewayIPConfigurations(gw.IPConfigurations)); err != nil {
-			return fmt.Errorf("Error setting `ip_configuration`: %+v", err)
+			return diag.Errorf("Error setting `ip_configuration`: %+v", err)
 		}
 
 		vpnConfigFlat := flattenArmVirtualNetworkGatewayVpnClientConfig(gw.VpnClientConfiguration)
 		if err := d.Set("vpn_client_configuration", vpnConfigFlat); err != nil {
-			return fmt.Errorf("Error setting `vpn_client_configuration`: %+v", err)
+			return diag.Errorf("Error setting `vpn_client_configuration`: %+v", err)
 		}
 
 		bgpSettingsFlat := flattenArmVirtualNetworkGatewayBgpSettings(gw.BgpSettings)
 		if err := d.Set("bgp_settings", bgpSettingsFlat); err != nil {
-			return fmt.Errorf("Error setting `bgp_settings`: %+v", err)
+			return diag.Errorf("Error setting `bgp_settings`: %+v", err)
 		}
 
 	}
@@ -379,22 +377,21 @@ func resourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceArmVirtualNetworkGatewayDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayFromId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error deleting Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for deletion of Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for deletion of Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	return nil
@@ -710,7 +707,7 @@ func hashVirtualNetworkGatewayRootCert(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["public_cert_data"].(string)))
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func hashVirtualNetworkGatewayRevokedCert(v interface{}) int {
@@ -720,7 +717,7 @@ func hashVirtualNetworkGatewayRevokedCert(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["thumbprint"].(string)))
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func resourceGroupAndVirtualNetworkGatewayFromId(virtualNetworkGatewayId string) (string, string, error) {
@@ -782,7 +779,7 @@ func validateArmVirtualNetworkGatewayExpressRouteSku() schema.SchemaValidateFunc
 	}, true)
 }
 
-func resourceArmVirtualNetworkGatewayCustomizeDiff(diff *schema.ResourceDiff, v interface{}) error {
+func resourceArmVirtualNetworkGatewayCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 
 	if vpnClient, ok := diff.GetOk("vpn_client_configuration"); ok {
 		if vpnClientConfig, ok := vpnClient.([]interface{})[0].(map[string]interface{}); ok {

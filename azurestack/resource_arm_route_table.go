@@ -1,27 +1,28 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/response"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 var routeTableResourceName = "azurestack_route_table"
 
 func resourceArmRouteTable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmRouteTableCreateUpdate,
-		Read:   resourceArmRouteTableRead,
-		Update: resourceArmRouteTableCreateUpdate,
-		Delete: resourceArmRouteTableDelete,
+		CreateContext: resourceArmRouteTableCreateUpdate,
+		ReadContext:   resourceArmRouteTableRead,
+		UpdateContext: resourceArmRouteTableCreateUpdate,
+		DeleteContext: resourceArmRouteTableDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -90,9 +91,8 @@ func resourceArmRouteTable() *schema.Resource {
 	}
 }
 
-func resourceArmRouteTableCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmRouteTableCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routeTablesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for AzureStack Route Table creation.")
 
@@ -114,33 +114,32 @@ func resourceArmRouteTableCreateUpdate(d *schema.ResourceData, meta interface{})
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, routeSet)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating Route Table %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Creating/Updating Route Table %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for completion of Route Table %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Route Table %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name, "")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Route Table %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read Route Table %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmRouteTableRead(d, meta)
+	return resourceArmRouteTableRead(ctx, d, meta)
 }
 
-func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmRouteTableRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routeTablesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["routeTables"]
@@ -151,7 +150,7 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Route Table %q: %+v", name, err)
+		return diag.Errorf("Error making Read request on Azure Route Table %q: %+v", name, err)
 	}
 
 	d.Set("name", name)
@@ -162,11 +161,11 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
 	if props := resp.RouteTablePropertiesFormat; props != nil {
 		if err := d.Set("route", flattenRouteTableRoutes(props.Routes)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		if err := d.Set("subnets", flattenRouteTableSubnets(props.Subnets)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -175,13 +174,12 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArmRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmRouteTableDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).routeTablesClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["routeTables"]
@@ -189,12 +187,12 @@ func resourceArmRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
 		if !response.WasNotFound(future.Response()) {
-			return fmt.Errorf("Error deleting Route Table %q (Resource Group %q): %+v", name, resGroup, err)
+			return diag.Errorf("Error deleting Route Table %q (Resource Group %q): %+v", name, resGroup, err)
 		}
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for deletion of Route Table %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for deletion of Route Table %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	return nil

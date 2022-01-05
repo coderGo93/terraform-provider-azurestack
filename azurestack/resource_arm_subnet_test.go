@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/response"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func TestAccAzureStackSubnet_basic(t *testing.T) {
@@ -20,9 +20,9 @@ func TestAccAzureStackSubnet_basic(t *testing.T) {
 	config := testAccAzureStackSubnet_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -48,9 +48,9 @@ func TestAccAzureStackSubnet_routeTableUpdate(t *testing.T) {
 	updatedConfig := testAccAzureStackSubnet_updatedRouteTable(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: initConfig,
@@ -84,9 +84,9 @@ func TestAccAzureStackSubnet_routeTableRemove(t *testing.T) {
 	updatedConfig := testAccAzureStackSubnet_routeTableUnlinked(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: initConfig,
@@ -115,9 +115,9 @@ func TestAccAzureStackSubnet_removeNetworkSecurityGroup(t *testing.T) {
 	updatedConfig := testAccAzureStackSubnet_networkSecurityGroupDetached(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: initConfig,
@@ -150,9 +150,9 @@ func TestAccAzureStackSubnet_bug7986(t *testing.T) {
 	initConfig := testAccAzureStackSubnet_bug7986(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: initConfig,
@@ -171,9 +171,9 @@ func TestAccAzureStackSubnet_bug15204(t *testing.T) {
 	initConfig := testAccAzureStackSubnet_bug15204(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: initConfig,
@@ -190,9 +190,9 @@ func TestAccAzureStackSubnet_disappears(t *testing.T) {
 	config := testAccAzureStackSubnet_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -357,9 +357,9 @@ func TestAccAzureStackSubnet_serviceEndpoints(t *testing.T) {
 	config := testAccAzureStackSubnet_serviceEndpoints(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackSubnetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

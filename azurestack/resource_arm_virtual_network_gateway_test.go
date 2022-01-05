@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func TestAccAzureStackVirtualNetworkGateway_basic(t *testing.T) {
@@ -16,9 +16,9 @@ func TestAccAzureStackVirtualNetworkGateway_basic(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -42,9 +42,9 @@ func TestAccAzureStackVirtualNetworkGateway_lowerCaseSubnetName(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_lowerCaseSubnetName(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -64,9 +64,9 @@ func TestAccAzureStackVirtualNetworkGateway_vpnGw1(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_vpnGw1(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -87,9 +87,9 @@ func TestAccAzureStackVirtualNetworkGateway_activeActive(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_activeActive(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -107,9 +107,9 @@ func TestAccAzureStackVirtualNetworkGateway_standard(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_sku(ri, testLocation(), "Standard")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -132,9 +132,9 @@ func TestAccAzureStackVirtualNetworkGateway_vpnGw2(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_sku(ri, testLocation(), "VpnGw2")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -157,9 +157,9 @@ func TestAccAzureStackVirtualNetworkGateway_vpnGw3(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_sku(ri, testLocation(), "VpnGw3")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -178,9 +178,9 @@ func TestAccAzureStackVirtualNetworkGateway_vpnClientConfig(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGateway_vpnClientConfig(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

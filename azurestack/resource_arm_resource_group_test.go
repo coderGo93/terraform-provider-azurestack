@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAzureStackResourceGroup_basic(t *testing.T) {
@@ -16,9 +16,9 @@ func TestAccAzureStackResourceGroup_basic(t *testing.T) {
 	config := testAccAzureStackResourceGroup_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackResourceGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackResourceGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -41,9 +41,9 @@ func TestAccAzureStackResourceGroup_disappears(t *testing.T) {
 	config := testAccAzureStackResourceGroup_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackResourceGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackResourceGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -65,9 +65,9 @@ func TestAccAzureStackResourceGroup_withTags(t *testing.T) {
 	postConfig := testAccAzureStackResourceGroup_withTagsUpdated(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackResourceGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackResourceGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,

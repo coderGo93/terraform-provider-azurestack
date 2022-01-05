@@ -1,24 +1,25 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 var subnetResourceName = "azurestack_subnet"
 
 func resourceArmSubnet() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmSubnetCreate,
-		Read:   resourceArmSubnetRead,
-		Update: resourceArmSubnetCreate,
-		Delete: resourceArmSubnetDelete,
+		CreateContext: resourceArmSubnetCreate,
+		ReadContext:   resourceArmSubnetRead,
+		UpdateContext: resourceArmSubnetCreate,
+		DeleteContext: resourceArmSubnetDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -69,9 +70,8 @@ func resourceArmSubnet() *schema.Resource {
 	}
 }
 
-func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmSubnetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).subnetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for Azure ARM Subnet creation.")
 
@@ -95,7 +95,7 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 
 		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		azureStackLockByName(networkSecurityGroupName, networkSecurityGroupResourceName)
@@ -110,7 +110,7 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 
 		routeTableName, err := parseRouteTableName(rtId)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		azureStackLockByName(routeTableName, routeTableResourceName)
@@ -132,34 +132,33 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, vnetName, name, subnet)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
+		return diag.Errorf("Error Creating/Updating Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion of Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, vnetName, name, "")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read ID of Subnet %q (VN %q / Resource Group %q)", vnetName, name, resGroup)
+		return diag.Errorf("Cannot read ID of Subnet %q (VN %q / Resource Group %q)", vnetName, name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmSubnetRead(d, meta)
+	return resourceArmSubnetRead(ctx, d, meta)
 }
 
-func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmSubnetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).subnetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	vnetName := id.Path["virtualNetworks"]
@@ -172,7 +171,7 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Subnet %q: %+v", name, err)
+		return diag.Errorf("Error making Read request on Azure Subnet %q: %+v", name, err)
 	}
 
 	d.Set("name", name)
@@ -192,26 +191,25 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 
 		ips := flattenSubnetIPConfigurations(props.IPConfigurations)
 		if err := d.Set("ip_configurations", ips); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		// Not supported for 2017-03-09 profile
 		// serviceEndpoints := flattenSubnetServiceEndpoints(props.ServiceEndpoints)
 		// if err := d.Set("service_endpoints", serviceEndpoints); err != nil {
-		// 	return err
+		// 	return diag.FromErr(err)
 		// }
 	}
 
 	return nil
 }
 
-func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmSubnetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).subnetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["subnets"]
@@ -221,7 +219,7 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 		networkSecurityGroupId := v.(string)
 		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		azureStackLockByName(networkSecurityGroupName, networkSecurityGroupResourceName)
@@ -238,7 +236,7 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 		rtId := v.(string)
 		routeTableName, err := parseRouteTableName(rtId)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		azureStackLockByName(routeTableName, routeTableResourceName)
@@ -257,7 +255,7 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 				d.SetId("")
 				return nil
 			}
-			return fmt.Errorf("Error making Read request on Azure Subnet %q: %+v", name, err)
+			return diag.Errorf("Error making Read request on Azure Subnet %q: %+v", name, err)
 		}
 
 		// Set the route table to nil
@@ -268,24 +266,24 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 		// Dissasociate the subnet
 		future, err := client.CreateOrUpdate(ctx, resGroup, vnetName, name, resp)
 		if err != nil {
-			return fmt.Errorf("Error Dissasociating Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
+			return diag.Errorf("Error Dissasociating Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
 		}
 
 		err = future.WaitForCompletionRef(ctx, client.Client)
 		if err != nil {
-			return fmt.Errorf("Error waiting for completion of Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
+			return diag.Errorf("Error waiting for completion of Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
 		}
 
 	}
 
 	future, err := client.Delete(ctx, resGroup, vnetName, name)
 	if err != nil {
-		return fmt.Errorf("Error deleting Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
+		return diag.Errorf("Error deleting Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for completion for Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
+		return diag.Errorf("Error waiting for completion for Subnet %q (VN %q / Resource Group %q): %+v", name, vnetName, resGroup, err)
 	}
 
 	return nil

@@ -1,25 +1,26 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/azure"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmVirtualNetworkGatewayConnection() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmVirtualNetworkGatewayConnectionCreateUpdate,
-		Read:   resourceArmVirtualNetworkGatewayConnectionRead,
-		Update: resourceArmVirtualNetworkGatewayConnectionCreateUpdate,
-		Delete: resourceArmVirtualNetworkGatewayConnectionDelete,
+		CreateContext: resourceArmVirtualNetworkGatewayConnectionCreateUpdate,
+		ReadContext:   resourceArmVirtualNetworkGatewayConnectionRead,
+		UpdateContext: resourceArmVirtualNetworkGatewayConnectionCreateUpdate,
+		DeleteContext: resourceArmVirtualNetworkGatewayConnectionDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -43,7 +44,7 @@ func resourceArmVirtualNetworkGatewayConnection() *schema.Resource {
 					string(network.IPsec),
 					string(network.Vnet2Vnet),
 				}, true),
-				DiffSuppressFunc: suppress.CaseDifference,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"virtual_network_gateway_id": {
@@ -104,9 +105,8 @@ func resourceArmVirtualNetworkGatewayConnection() *schema.Resource {
 	}
 }
 
-func resourceArmVirtualNetworkGatewayConnectionCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayConnectionCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayConnectionsClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for AzureStack Virtual Network Gateway Connection creation.")
 
@@ -117,7 +117,7 @@ func resourceArmVirtualNetworkGatewayConnectionCreateUpdate(d *schema.ResourceDa
 
 	properties, err := getArmVirtualNetworkGatewayConnectionProperties(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	connection := network.VirtualNetworkGatewayConnection{
@@ -129,33 +129,32 @@ func resourceArmVirtualNetworkGatewayConnectionCreateUpdate(d *schema.ResourceDa
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, connection)
 	if err != nil {
-		return fmt.Errorf("Error Creating/Updating AzureStack Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Creating/Updating AzureStack Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for completion of Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for completion of Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read AzureStack Virtual Network Gateway Connection %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read AzureStack Virtual Network Gateway Connection %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmVirtualNetworkGatewayConnectionRead(d, meta)
+	return resourceArmVirtualNetworkGatewayConnectionRead(ctx, d, meta)
 }
 
-func resourceArmVirtualNetworkGatewayConnectionRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayConnectionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayConnectionsClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayConnectionFromId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err := client.Get(ctx, resGroup, name)
@@ -164,7 +163,7 @@ func resourceArmVirtualNetworkGatewayConnectionRead(d *schema.ResourceData, meta
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on AzureStack Virtual Network Gateway Connection %q: %+v", name, err)
+		return diag.Errorf("Error making Read request on AzureStack Virtual Network Gateway Connection %q: %+v", name, err)
 	}
 
 	conn := *resp.VirtualNetworkGatewayConnectionPropertiesFormat
@@ -214,7 +213,7 @@ func resourceArmVirtualNetworkGatewayConnectionRead(d *schema.ResourceData, meta
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making GetSharedKey request on AzureStack Virtual Network Gateway Connection %q: %+v", name, err)
+		return diag.Errorf("Error making GetSharedKey request on AzureStack Virtual Network Gateway Connection %q: %+v", name, err)
 	}
 
 	if sharedKeyResp.Value != nil {
@@ -226,22 +225,21 @@ func resourceArmVirtualNetworkGatewayConnectionRead(d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceArmVirtualNetworkGatewayConnectionDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayConnectionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayConnectionsClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayConnectionFromId(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error Deleting Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error Deleting Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("Error waiting for deletion of Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for deletion of Virtual Network Gateway Connection %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	return nil

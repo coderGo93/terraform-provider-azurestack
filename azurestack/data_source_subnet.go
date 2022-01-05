@@ -1,16 +1,17 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func dataSourceArmSubnet() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmSubnetRead,
+		ReadContext: dataSourceArmSubnetRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:         schema.TypeString,
@@ -51,9 +52,8 @@ func dataSourceArmSubnet() *schema.Resource {
 	}
 }
 
-func dataSourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmSubnetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).subnetClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	virtualNetworkName := d.Get("virtual_network_name").(string)
@@ -62,9 +62,9 @@ func dataSourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := client.Get(ctx, resourceGroup, virtualNetworkName, name, "")
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
-			return fmt.Errorf("Error: Subnet %q (Virtual Network %q / Resource Group %q) was not found", name, resourceGroup, virtualNetworkName)
+			return diag.Errorf("Error: Subnet %q (Virtual Network %q / Resource Group %q) was not found", name, resourceGroup, virtualNetworkName)
 		}
-		return fmt.Errorf("Error making Read request on Azure Subnet %q: %+v", name, err)
+		return diag.Errorf("Error making Read request on Azure Subnet %q: %+v", name, err)
 	}
 	d.SetId(*resp.ID)
 
@@ -88,7 +88,7 @@ func dataSourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if err := d.Set("ip_configurations", flattenSubnetIPConfigurations(props.IPConfigurations)); err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 

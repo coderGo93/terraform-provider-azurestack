@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestResourceAzureStackLoadBalancerRuleNameLabel_validation(t *testing.T) {
@@ -78,9 +78,9 @@ func TestAccAzureStackLoadBalancerRule_basic(t *testing.T) {
 		subscriptionID, ri, ri, lbRuleName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerRule_basic(ri, lbRuleName, testLocation()),
@@ -106,9 +106,9 @@ func TestAccAzureStackLoadBalancerRule_removal(t *testing.T) {
 	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerRule_basic(ri, lbRuleName, testLocation()),
@@ -137,9 +137,9 @@ func TestAccAzureStackLoadBalancerRule_inconsistentReads(t *testing.T) {
 	probeName := fmt.Sprintf("LbProbe-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerRule_inconsistentRead(ri, backendPoolName, probeName, lbRuleName, testLocation()),
@@ -170,9 +170,9 @@ func TestAccAzureStackLoadBalancerRule_update(t *testing.T) {
 		subscriptionID, ri, ri, lbRule2Name)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerRule_multipleRules(ri, lbRuleName, lbRule2Name, testLocation()),
@@ -208,9 +208,9 @@ func TestAccAzureStackLoadBalancerRule_disappears(t *testing.T) {
 	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerRule_basic(ri, lbRuleName, testLocation()),

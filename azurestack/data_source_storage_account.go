@@ -1,16 +1,18 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func dataSourceArmStorageAccount() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmStorageAccountRead,
+		ReadContext: dataSourceArmStorageAccountRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -50,7 +52,6 @@ func dataSourceArmStorageAccount() *schema.Resource {
 			"custom_domain": {
 				Type:     schema.TypeList,
 				Computed: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -160,8 +161,7 @@ func dataSourceArmStorageAccount() *schema.Resource {
 
 }
 
-func dataSourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) error {
-	ctx := meta.(*ArmClient).StopContext
+func dataSourceArmStorageAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).storageServiceClient
 	endpointSuffix := meta.(*ArmClient).environment.StorageEndpointSuffix
 
@@ -174,14 +174,14 @@ func dataSourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) e
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading the state of AzureStack Storage Account %q: %+v", name, err)
+		return diag.Errorf("Error reading the state of AzureStack Storage Account %q: %+v", name, err)
 	}
 
 	d.SetId(*resp.ID)
 
 	keys, err := client.ListKeys(ctx, resourceGroup, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	accessKeys := *keys.Keys
@@ -204,7 +204,7 @@ func dataSourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) e
 
 		if customDomain := props.CustomDomain; customDomain != nil {
 			if err := d.Set("custom_domain", flattenStorageAccountCustomDomain(customDomain)); err != nil {
-				return fmt.Errorf("Error flattening `custom_domain`: %+v", err)
+				return diag.Errorf("Error flattening `custom_domain`: %+v", err)
 			}
 		}
 

@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestResourceAzureStackPublicIpDomainNameLabel_validation(t *testing.T) {
@@ -50,9 +50,9 @@ func TestAccAzureStackPublicIpStatic_basic(t *testing.T) {
 	config := testAccAzureStackPublicIPStatic_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -81,9 +81,9 @@ func TestAccAzureStackPublicIpStatic_standard(t *testing.T) {
 	config := testAccAzureStackPublicIPStatic_standard(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -106,9 +106,9 @@ func TestAccAzureStackPublicIpStatic_disappears(t *testing.T) {
 	config := testAccAzureStackPublicIPStatic_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -128,9 +128,9 @@ func TestAccAzureStackPublicIpStatic_idleTimeout(t *testing.T) {
 	config := testAccAzureStackPublicIPStatic_idleTimeout(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -156,9 +156,9 @@ func TestAccAzureStackPublicIpStatic_withTags(t *testing.T) {
 	postConfig := testAccAzureStackPublicIPStatic_withTagsUpdate(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -194,9 +194,9 @@ func TestAccAzureStackPublicIpStatic_update(t *testing.T) {
 	postConfig := testAccAzureStackPublicIPStatic_update(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -221,9 +221,9 @@ func TestAccAzureStackPublicIpDynamic_basic(t *testing.T) {
 	config := testAccAzureStackPublicIPDynamic_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -246,9 +246,9 @@ func TestAccAzureStackPublicIpStatic_importIdError(t *testing.T) {
 	ri := acctest.RandInt()
 	config := testAccAzureStackPublicIPStatic_basic(ri, testLocation())
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackPublicIpDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

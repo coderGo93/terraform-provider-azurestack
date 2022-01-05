@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAzureStackManagedDisk_empty(t *testing.T) {
@@ -18,9 +18,9 @@ func TestAccAzureStackManagedDisk_empty(t *testing.T) {
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackManagedDiskDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackManagedDisk_empty(ri, location),
@@ -43,9 +43,9 @@ func TestAccAzureStackManagedDisk_zeroGbFromPlatformImage(t *testing.T) {
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackManagedDiskDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackManagedDisk_zeroGbFromPlatformImage(ri, testLocation()),
@@ -65,9 +65,9 @@ func TestAccAzureStackManagedDisk_import(t *testing.T) {
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackManagedDiskDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				//need to create a vm and then delete it so we can use the vhd to test import
@@ -95,9 +95,9 @@ func TestAccAzureStackManagedDisk_copy(t *testing.T) {
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackManagedDiskDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackManagedDisk_copy(ri, testLocation()),
@@ -115,9 +115,9 @@ func TestAccAzureStackManagedDisk_fromPlatformImage(t *testing.T) {
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackManagedDiskDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackManagedDisk_platformImage(ri, testLocation()),
@@ -135,9 +135,9 @@ func TestAccAzureStackManagedDisk_update(t *testing.T) {
 	var d compute.Disk
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackManagedDiskDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackManagedDisk_empty(ri, testLocation()),

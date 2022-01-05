@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAzureStackLoadBalancerNatPool_basic(t *testing.T) {
@@ -22,9 +22,9 @@ func TestAccAzureStackLoadBalancerNatPool_basic(t *testing.T) {
 		subscriptionID, ri, ri, natPoolName)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatPool_basic(ri, natPoolName, testLocation()),
@@ -50,9 +50,9 @@ func TestAccAzureStackLoadBalancerNatPool_removal(t *testing.T) {
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatPool_basic(ri, natPoolName, testLocation()),
@@ -79,9 +79,9 @@ func TestAccAzureStackLoadBalancerNatPool_update(t *testing.T) {
 	natPool2Name := fmt.Sprintf("NatPool-%d", acctest.RandInt())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatPool_multiplePools(ri, natPoolName, natPool2Name, testLocation()),
@@ -111,9 +111,9 @@ func TestAccAzureStackLoadBalancerNatPool_disappears(t *testing.T) {
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLoadBalancerNatPool_basic(ri, natPoolName, testLocation()),

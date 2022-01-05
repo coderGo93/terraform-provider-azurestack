@@ -1,27 +1,29 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/storage/mgmt/storage"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 const blobStorageAccountDefaultAccessTier = "Hot"
 
 func resourceArmStorageAccount() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmStorageAccountCreate,
-		Read:   resourceArmStorageAccountRead,
-		Update: resourceArmStorageAccountUpdate,
-		Delete: resourceArmStorageAccountDelete,
+		CreateContext: resourceArmStorageAccountCreate,
+		ReadContext:   resourceArmStorageAccountRead,
+		UpdateContext: resourceArmStorageAccountUpdate,
+		DeleteContext: resourceArmStorageAccountDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -214,7 +216,7 @@ func resourceArmStorageAccount() *schema.Resource {
 
 }
 
-func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageAccountCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).storageServiceClient
 
 	resourceGroupName := d.Get("resource_group_name").(string)
@@ -253,7 +255,7 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	// BlobStorage does not support ZRS
 	if accountKind == string(storage.BlobStorage) {
 		if string(parameters.Sku.Name) == string(storage.StandardZRS) {
-			return fmt.Errorf("A `account_replication_type` of `ZRS` isn't supported for Blob Storage accounts.")
+			return diag.Errorf("A `account_replication_type` of `ZRS` isn't supported for Blob Storage accounts.")
 		}
 		accessTier, ok := d.GetOk("access_tier")
 		if !ok {
@@ -281,24 +283,23 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Create
-	ctx := meta.(*ArmClient).StopContext
 	future, err := client.Create(ctx, resourceGroupName, storageAccountName, parameters)
 	if err != nil {
-		return fmt.Errorf(
+		return diag.Errorf(
 			"Error creating Azure Storage Account %q: %+v",
 			storageAccountName, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf(
+		return diag.Errorf(
 			"Error while waiting for Azure Storage Account %q: %+v",
 			storageAccountName, err)
 	}
 
 	account, err := future.Result(client)
 	if err != nil {
-		return fmt.Errorf(
+		return diag.Errorf(
 			"Error while fetching Azure Storage Account %q: %+v",
 			storageAccountName, err)
 	}
@@ -306,19 +307,18 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[INFO] storage account %q ID: %q", storageAccountName, *account.ID)
 	d.SetId(*account.ID)
 
-	return resourceArmStorageAccountRead(d, meta)
+	return resourceArmStorageAccountRead(ctx, d, meta)
 }
 
 // resourceArmStorageAccountUpdate is unusual in the ARM API where most resources have a combined
 // and idempotent operation for CreateOrUpdate. In particular updating all of the parameters
 // available requires a call to Update per parameter...
-func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageAccountUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).storageServiceClient
 	// Create
-	ctx := meta.(*ArmClient).StopContext
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	storageAccountName := id.Path["storageaccounts"]
 	// https://github.com/terraform-providers/terraform-provider-azurestack/issues/98
@@ -336,7 +336,7 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 
 	if accountKind == string(storage.BlobStorage) {
 		if storageType == string(storage.StandardZRS) {
-			return fmt.Errorf("A `account_replication_type` of `ZRS` isn't supported for Blob Storage accounts.")
+			return diag.Errorf("A `account_replication_type` of `ZRS` isn't supported for Blob Storage accounts.")
 		}
 	}
 
@@ -353,10 +353,8 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 
 		_, err := client.Update(ctx, resourceGroupName, storageAccountName, opts)
 		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account type %q: %+v", storageAccountName, err)
+			return diag.Errorf("Error updating Azure Storage Account type %q: %+v", storageAccountName, err)
 		}
-
-		d.SetPartial("account_replication_type")
 	}
 
 	// if d.HasChange("access_tier") {
@@ -385,10 +383,8 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 
 		_, err := client.Update(ctx, resourceGroupName, storageAccountName, opts)
 		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account tags %q: %+v", storageAccountName, err)
+			return diag.Errorf("Error updating Azure Storage Account tags %q: %+v", storageAccountName, err)
 		}
-
-		d.SetPartial("tags")
 	}
 
 	if d.HasChange("enable_blob_encryption") {
@@ -408,13 +404,11 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 			opts.Encryption.Services.Blob = &storage.EncryptionService{
 				Enabled: utils.Bool(enableEncryption),
 			}
-
-			d.SetPartial("enable_blob_encryption")
 		}
 
 		_, err := client.Update(ctx, resourceGroupName, storageAccountName, opts)
 		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account Encryption %q: %+v", storageAccountName, err)
+			return diag.Errorf("Error updating Azure Storage Account Encryption %q: %+v", storageAccountName, err)
 		}
 	}
 
@@ -428,7 +422,7 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 
 		_, err := client.Update(ctx, resourceGroupName, storageAccountName, opts)
 		if err != nil {
-			return fmt.Errorf("Error updating Azure Storage Account Custom Domain %q: %+v", storageAccountName, err)
+			return diag.Errorf("Error updating Azure Storage Account Custom Domain %q: %+v", storageAccountName, err)
 		}
 	}
 
@@ -436,14 +430,13 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).storageServiceClient
 	endpointSuffix := meta.(*ArmClient).environment.StorageEndpointSuffix
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	name := id.Path["storageaccounts"]
@@ -461,12 +454,12 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading the state of AzurStack Storage Account %q: %+v", name, err)
+		return diag.Errorf("Error reading the state of AzurStack Storage Account %q: %+v", name, err)
 	}
 	// (resGroup, name)
 	keys, err := client.ListKeys(ctx, resGroup, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	accessKeys := *keys.Keys
@@ -487,7 +480,7 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 
 		if customDomain := props.CustomDomain; customDomain != nil {
 			if err := d.Set("custom_domain", flattenStorageAccountCustomDomain(customDomain)); err != nil {
-				return fmt.Errorf("Error flattening `custom_domain`: %+v", err)
+				return diag.Errorf("Error flattening `custom_domain`: %+v", err)
 			}
 		}
 
@@ -558,13 +551,12 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceArmStorageAccountDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmStorageAccountDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).storageServiceClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	name := id.Path["storageaccounts"]
 	// https://github.com/terraform-providers/terraform-provider-azurestack/issues/98
@@ -577,7 +569,7 @@ func resourceArmStorageAccountDelete(d *schema.ResourceData, meta interface{}) e
 
 	_, err = client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error issuing AzureStack delete request for storage account %q: %+v", name, err)
+		return diag.Errorf("Error issuing AzureStack delete request for storage account %q: %+v", name, err)
 	}
 
 	return nil

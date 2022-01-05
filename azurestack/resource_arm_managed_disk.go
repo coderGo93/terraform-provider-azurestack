@@ -1,26 +1,28 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/response"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmManagedDisk() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmManagedDiskCreateUpdate,
-		Read:   resourceArmManagedDiskRead,
-		Update: resourceArmManagedDiskCreateUpdate,
-		Delete: resourceArmManagedDiskDelete,
+		CreateContext: resourceArmManagedDiskCreateUpdate,
+		ReadContext:   resourceArmManagedDiskRead,
+		UpdateContext: resourceArmManagedDiskCreateUpdate,
+		DeleteContext: resourceArmManagedDiskDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -104,9 +106,8 @@ func validateDiskSizeGB(v interface{}, _ string) (warnings []string, errors []er
 	return warnings, errors
 }
 
-func resourceArmManagedDiskCreateUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmManagedDiskCreateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).diskClient
-	ctx := meta.(*ArmClient).StopContext
 
 	log.Printf("[INFO] preparing arguments for Azure ARM Managed Disk creation.")
 
@@ -145,13 +146,13 @@ func resourceArmManagedDiskCreateUpdate(d *schema.ResourceData, meta interface{}
 		if sourceUri := d.Get("source_uri").(string); sourceUri != "" {
 			createDisk.CreationData.SourceURI = &sourceUri
 		} else {
-			return fmt.Errorf("[ERROR] source_uri must be specified when create_option is `%s`", compute.Import)
+			return diag.Errorf("[ERROR] source_uri must be specified when create_option is `%s`", compute.Import)
 		}
 	} else if strings.EqualFold(createOption, string(compute.Copy)) {
 		if sourceResourceId := d.Get("source_resource_id").(string); sourceResourceId != "" {
 			createDisk.CreationData.SourceResourceID = &sourceResourceId
 		} else {
-			return fmt.Errorf("[ERROR] source_resource_id must be specified when create_option is `%s`", compute.Copy)
+			return diag.Errorf("[ERROR] source_resource_id must be specified when create_option is `%s`", compute.Copy)
 		}
 	} else if strings.EqualFold(createOption, string(compute.FromImage)) {
 		if imageReferenceId := d.Get("image_reference_id").(string); imageReferenceId != "" {
@@ -159,50 +160,49 @@ func resourceArmManagedDiskCreateUpdate(d *schema.ResourceData, meta interface{}
 				ID: utils.String(imageReferenceId),
 			}
 		} else {
-			return fmt.Errorf("[ERROR] image_reference_id must be specified when create_option is `%s`", compute.FromImage)
+			return diag.Errorf("[ERROR] image_reference_id must be specified when create_option is `%s`", compute.FromImage)
 		}
 	}
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, createDisk)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("[ERROR] Cannot read Managed Disk %s (resource group %s) ID", name, resGroup)
+		return diag.Errorf("[ERROR] Cannot read Managed Disk %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmManagedDiskRead(d, meta)
+	return resourceArmManagedDiskRead(ctx, d, meta)
 }
 
-func resourceArmManagedDiskRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmManagedDiskRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).diskClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["disks"]
 
 	resp, err := client.Get(ctx, resGroup, name)
 	if err != nil {
-		if utils.ResponseWasNotFound(resp.Response) {
+		if response.WasNotFound(resp.Response.Request.Response) {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("[ERROR] Error making Read request on Azure Managed Disk %s (resource group %s): %s", name, resGroup, err)
+		return diag.Errorf("[ERROR] Error making Read request on Azure Managed Disk %s (resource group %s): %s", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -233,13 +233,12 @@ func resourceArmManagedDiskRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmManagedDiskDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).diskClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["disks"]
@@ -247,13 +246,13 @@ func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) erro
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
 		if !response.WasNotFound(future.Response()) {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
 		if !response.WasNotFound(future.Response()) {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 

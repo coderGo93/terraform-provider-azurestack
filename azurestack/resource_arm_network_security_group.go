@@ -1,24 +1,25 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 var networkSecurityGroupResourceName = "azurestack_network_security_group"
 
 func resourceArmNetworkSecurityGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmNetworkSecurityGroupCreate,
-		Read:   resourceArmNetworkSecurityGroupRead,
-		Update: resourceArmNetworkSecurityGroupCreate,
-		Delete: resourceArmNetworkSecurityGroupDelete,
+		CreateContext: resourceArmNetworkSecurityGroupCreate,
+		ReadContext:   resourceArmNetworkSecurityGroupRead,
+		UpdateContext: resourceArmNetworkSecurityGroupCreate,
+		DeleteContext: resourceArmNetworkSecurityGroupDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -166,9 +167,8 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 	}
 }
 
-func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkSecurityGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secGroupClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	location := azureStackNormalizeLocation(d.Get("location").(string))
@@ -177,7 +177,7 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 
 	sgRules, sgErr := expandAzureStackSecurityRules(d)
 	if sgErr != nil {
-		return fmt.Errorf("Error Building list of Network Security Group Rules: %+v", sgErr)
+		return diag.Errorf("Error Building list of Network Security Group Rules: %+v", sgErr)
 	}
 
 	azureStackLockByName(name, networkSecurityGroupResourceName)
@@ -194,34 +194,33 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 
 	future, err := client.CreateOrUpdate(ctx, resGroup, name, sg)
 	if err != nil {
-		return fmt.Errorf("Error creating/updating NSG %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error creating/updating NSG %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error waiting for the completion of NSG %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error waiting for the completion of NSG %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	read, err := client.Get(ctx, resGroup, name, "")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read NSG %q (resource group %q) ID", name, resGroup)
+		return diag.Errorf("Cannot read NSG %q (resource group %q) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmNetworkSecurityGroupRead(d, meta)
+	return resourceArmNetworkSecurityGroupRead(ctx, d, meta)
 }
 
-func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkSecurityGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secGroupClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["networkSecurityGroups"]
@@ -232,7 +231,7 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Network Security Group %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on Network Security Group %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -244,7 +243,7 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 	if props := resp.SecurityGroupPropertiesFormat; props != nil {
 		flattenedRules := flattenNetworkSecurityRules(props.SecurityRules)
 		if err := d.Set("security_rule", flattenedRules); err != nil {
-			return fmt.Errorf("Error flattening `security_rule`: %+v", err)
+			return diag.Errorf("Error flattening `security_rule`: %+v", err)
 		}
 	}
 
@@ -253,28 +252,27 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceArmNetworkSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmNetworkSecurityGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).secGroupClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["networkSecurityGroups"]
 
 	future, err := client.Delete(ctx, resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error deleting Network Security Group %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting Network Security Group %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	err = future.WaitForCompletionRef(ctx, client.Client)
 	if err != nil {
-		return fmt.Errorf("Error deleting Network Security Group %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error deleting Network Security Group %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
-	return err
+	return diag.FromErr(err)
 }
 
 func expandAzureStackSecurityRules(d *schema.ResourceData) ([]network.SecurityRule, error) {

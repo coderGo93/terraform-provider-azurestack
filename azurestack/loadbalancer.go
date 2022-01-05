@@ -9,8 +9,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-10-01/network"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGroupAndLBNameFromId(loadBalancerId string) (string, string, error) {
@@ -24,9 +24,8 @@ func resourceGroupAndLBNameFromId(loadBalancerId string) (string, string, error)
 	return resGroup, name, nil
 }
 
-func retrieveLoadBalancerById(loadBalancerId string, meta interface{}) (*network.LoadBalancer, bool, error) {
+func retrieveLoadBalancerById(ctx context.Context, loadBalancerId string, meta interface{}) (*network.LoadBalancer, bool, error) {
 	client := meta.(*ArmClient).loadBalancerClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup, name, err := resourceGroupAndLBNameFromId(loadBalancerId)
 	if err != nil {
@@ -148,7 +147,7 @@ func validateLoadBalancerPrivateIpAddressAllocation(v interface{}, k string) (ws
 }
 
 // sets the loadbalancer_id in the ResourceData from the sub resources full id
-func loadBalancerSubResourceStateImporter(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+func loadBalancerSubResourceStateImporter(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
 	r, err := regexp.Compile(`.+\/loadBalancers\/.+?\/`)
 	if err != nil {
 		return nil, err

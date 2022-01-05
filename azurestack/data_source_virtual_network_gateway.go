@@ -1,20 +1,21 @@
 package azurestack
 
 import (
+	"context"
 	"fmt"
 
 	"bytes"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func dataSourceArmVirtualNetworkGateway() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmVirtualNetworkGatewayRead,
+		ReadContext: dataSourceArmVirtualNetworkGatewayRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -186,9 +187,8 @@ func dataSourceArmVirtualNetworkGateway() *schema.Resource {
 	}
 }
 
-func dataSourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmVirtualNetworkGatewayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).vnetGatewayClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	resGroup := d.Get("resource_group_name").(string)
@@ -196,10 +196,10 @@ func dataSourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interfa
 	resp, err := client.Get(ctx, resGroup, name)
 	if err != nil {
 		if utils.ResponseWasNotFound(resp.Response) {
-			return fmt.Errorf("Virtual Network Gateway %q (Resource Group %q) was not found", name, resGroup)
+			return diag.Errorf("Virtual Network Gateway %q (Resource Group %q) was not found", name, resGroup)
 		}
 
-		return fmt.Errorf("Error making Read request on AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on AzureStack Virtual Network Gateway %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.SetId(*resp.ID)
@@ -232,17 +232,17 @@ func dataSourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interfa
 		}
 
 		if err := d.Set("ip_configuration", flattenArmVirtualNetworkGatewayDataSourceIPConfigurations(gw.IPConfigurations)); err != nil {
-			return fmt.Errorf("Error setting `ip_configuration`: %+v", err)
+			return diag.Errorf("Error setting `ip_configuration`: %+v", err)
 		}
 
 		vpnConfigFlat := flattenArmVirtualNetworkGatewayDataSourceVpnClientConfig(gw.VpnClientConfiguration)
 		if err := d.Set("vpn_client_configuration", vpnConfigFlat); err != nil {
-			return fmt.Errorf("Error setting `vpn_client_configuration`: %+v", err)
+			return diag.Errorf("Error setting `vpn_client_configuration`: %+v", err)
 		}
 
 		bgpSettingsFlat := flattenArmVirtualNetworkGatewayDataSourceBgpSettings(gw.BgpSettings)
 		if err := d.Set("bgp_settings", bgpSettingsFlat); err != nil {
-			return fmt.Errorf("Error setting `bgp_settings`: %+v", err)
+			return diag.Errorf("Error setting `bgp_settings`: %+v", err)
 		}
 	}
 
@@ -377,7 +377,7 @@ func hashVirtualNetworkGatewayDataSourceRootCert(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["public_cert_data"].(string)))
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }
 
 func hashVirtualNetworkGatewayDataSourceRevokedCert(v interface{}) int {
@@ -387,5 +387,5 @@ func hashVirtualNetworkGatewayDataSourceRevokedCert(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["thumbprint"].(string)))
 
-	return hashcode.String(buf.String())
+	return HashCodeString(buf.String())
 }

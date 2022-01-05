@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func TestAccAzureStackVirtualNetworkGatewayConnection_sitetosite(t *testing.T) {
@@ -15,9 +15,9 @@ func TestAccAzureStackVirtualNetworkGatewayConnection_sitetosite(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGatewayConnection_sitetosite(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -46,9 +46,9 @@ func TestAccAzureStackVirtualNetworkGatewayConnection_vnettonet(t *testing.T) {
 	config := testAccAzureStackVirtualNetworkGatewayConnection_vnettovnet(ri, ri2, sharedKey, testLocation(), testAltLocation())
 	fmt.Printf("%+v\n", config)
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -70,9 +70,9 @@ func TestAccAzureStackVirtualNetworkGatewayConnection_ipsecpolicy(t *testing.T) 
 	config := testAccAzureStackVirtualNetworkGatewayConnection_ipsecpolicy(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -99,9 +99,9 @@ func TestAccAzureStackVirtualNetworkGatewayConnection_updatingSharedKey(t *testi
 	secondSharedKey := "4-r33ly-53cr37-1p53c-5h4r3d-k3y"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackVirtualNetworkGatewayConnection_vnettovnet(ri, ri2, firstSharedKey, loc1, loc2),

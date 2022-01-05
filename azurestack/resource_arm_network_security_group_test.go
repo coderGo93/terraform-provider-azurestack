@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func TestAccAzureStackNetworkSecurityGroup_basic(t *testing.T) {
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_basic(rInt, testLocation()),
@@ -37,9 +37,9 @@ func TestAccAzureStackNetworkSecurityGroup_singleRule(t *testing.T) {
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_singleRule(rInt, testLocation()),
@@ -61,9 +61,9 @@ func TestAccAzureStackNetworkSecurityGroup_update(t *testing.T) {
 	rInt := acctest.RandInt()
 	location := testLocation()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_singleRule(rInt, location),
@@ -85,9 +85,9 @@ func TestAccAzureStackNetworkSecurityGroup_disappears(t *testing.T) {
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_basic(rInt, testLocation()),
@@ -105,9 +105,9 @@ func TestAccAzureStackNetworkSecurityGroup_withTags(t *testing.T) {
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_withTags(rInt, testLocation()),
@@ -141,9 +141,9 @@ func TestAccAzureStackNetworkSecurityGroup_addingExtraRules(t *testing.T) {
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_singleRule(rInt, testLocation()),
@@ -178,9 +178,9 @@ func TestAccAzureStackNetworkSecurityGroup_augmented(t *testing.T) {
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_augmented(rInt, testLocation()),
@@ -201,9 +201,9 @@ func TestAccAzureStackNetworkSecurityGroup_applicationSecurityGroup(t *testing.T
 	resourceName := "azurestack_network_security_group.test"
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackNetworkSecurityGroup_applicationSecurityGroup(rInt, testLocation()),

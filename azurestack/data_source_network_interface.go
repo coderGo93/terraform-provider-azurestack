@@ -1,17 +1,18 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func dataSourceArmNetworkInterface() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceArmNetworkInterfaceRead,
+		ReadContext: dataSourceArmNetworkInterfaceRead,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -163,9 +164,8 @@ func dataSourceArmNetworkInterface() *schema.Resource {
 	}
 }
 
-func dataSourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceArmNetworkInterfaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient).ifaceClient
-	ctx := meta.(*ArmClient).StopContext
 
 	resGroup := d.Get("resource_group_name").(string)
 	name := d.Get("name").(string)
@@ -176,7 +176,7 @@ func dataSourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{})
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
+		return diag.Errorf("Error making Read request on Azure Network Interface %q (Resource Group %q): %+v", name, resGroup, err)
 	}
 
 	d.SetId(*resp.ID)
@@ -207,13 +207,13 @@ func dataSourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{})
 			}
 
 			if err := d.Set("private_ip_addresses", addresses); err != nil {
-				return fmt.Errorf("Error setting `private_ip_addresses`: %+v", err)
+				return diag.Errorf("Error setting `private_ip_addresses`: %+v", err)
 			}
 		}
 
 		if iface.IPConfigurations != nil {
 			if err := d.Set("ip_configuration", flattenNetworkInterfaceIPConfigurations(iface.IPConfigurations)); err != nil {
-				return fmt.Errorf("Error setting `ip_configuration`: %+v", err)
+				return diag.Errorf("Error setting `ip_configuration`: %+v", err)
 			}
 		}
 

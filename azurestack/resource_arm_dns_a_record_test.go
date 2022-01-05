@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/dns/mgmt/2016-04-01/dns"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAzureStackDnsARecord_basic(t *testing.T) {
@@ -17,9 +17,9 @@ func TestAccAzureStackDnsARecord_basic(t *testing.T) {
 	config := testAccAzureStackDnsARecord_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackDnsARecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackDnsARecordDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -39,9 +39,9 @@ func TestAccAzureStackDnsARecord_updateRecords(t *testing.T) {
 	postConfig := testAccAzureStackDnsARecord_updateRecords(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackDnsARecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackDnsARecordDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -69,9 +69,9 @@ func TestAccAzureStackDnsARecord_withTags(t *testing.T) {
 	postConfig := testAccAzureStackDnsARecord_withTagsUpdate(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackDnsARecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackDnsARecordDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,

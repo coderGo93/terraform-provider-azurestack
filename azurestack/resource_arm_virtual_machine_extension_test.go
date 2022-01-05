@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAzureStackVirtualMachineExtension_basic(t *testing.T) {
@@ -19,9 +19,9 @@ func TestAccAzureStackVirtualMachineExtension_basic(t *testing.T) {
 	postConfig := testAccAzureStackVirtualMachineExtension_basicUpdate(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualMachineExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualMachineExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -48,9 +48,9 @@ func TestAccAzureStackVirtualMachineExtension_concurrent(t *testing.T) {
 	config := testAccAzureStackVirtualMachineExtension_concurrent(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualMachineExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualMachineExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -74,9 +74,9 @@ func TestAccAzureStackVirtualMachineExtension_linuxDiagnostics(t *testing.T) {
 	config := testAccAzureStackVirtualMachineExtension_linuxDiagnostics(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualMachineExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualMachineExtensionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

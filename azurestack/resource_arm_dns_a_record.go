@@ -1,22 +1,23 @@
 package azurestack
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/services/dns/mgmt/2016-04-01/dns"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmDnsARecord() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmDnsARecordCreateOrUpdate,
-		Read:   resourceArmDnsARecordRead,
-		Update: resourceArmDnsARecordCreateOrUpdate,
-		Delete: resourceArmDnsARecordDelete,
+		CreateContext: resourceArmDnsARecordCreateOrUpdate,
+		ReadContext:   resourceArmDnsARecordRead,
+		UpdateContext: resourceArmDnsARecordCreateOrUpdate,
+		DeleteContext: resourceArmDnsARecordDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -50,9 +51,8 @@ func resourceArmDnsARecord() *schema.Resource {
 	}
 }
 
-func resourceArmDnsARecordCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmDnsARecordCreateOrUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	dnsClient := meta.(*ArmClient).dnsClient
-	ctx := meta.(*ArmClient).StopContext
 
 	name := d.Get("name").(string)
 	resGroup := d.Get("resource_group_name").(string)
@@ -62,7 +62,7 @@ func resourceArmDnsARecordCreateOrUpdate(d *schema.ResourceData, meta interface{
 
 	records, err := expandAzureStackDnsARecords(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	parameters := dns.RecordSet{
@@ -78,25 +78,24 @@ func resourceArmDnsARecordCreateOrUpdate(d *schema.ResourceData, meta interface{
 	ifNoneMatch := "" // set to empty to allow updates to records after creation
 	resp, err := dnsClient.CreateOrUpdate(ctx, resGroup, zoneName, name, "A", parameters, eTag, ifNoneMatch)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if resp.ID == nil {
-		return fmt.Errorf("Cannot read DNS A Record %s (resource group %s) ID", name, resGroup)
+		return diag.Errorf("Cannot read DNS A Record %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*resp.ID)
 
-	return resourceArmDnsARecordRead(d, meta)
+	return resourceArmDnsARecordRead(ctx, d, meta)
 }
 
-func resourceArmDnsARecordRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmDnsARecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	dnsClient := meta.(*ArmClient).dnsClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resGroup := id.ResourceGroup
@@ -109,7 +108,7 @@ func resourceArmDnsARecordRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading DNS A record %s: %+v", name, err)
+		return diag.Errorf("Error reading DNS A record %s: %+v", name, err)
 	}
 
 	d.Set("name", name)
@@ -118,20 +117,19 @@ func resourceArmDnsARecordRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ttl", resp.TTL)
 
 	if err := d.Set("records", flattenAzureStackDnsARecords(resp.ARecords)); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	flattenAndSetTags(d, &resp.Metadata)
 
 	return nil
 }
 
-func resourceArmDnsARecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmDnsARecordDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	dnsClient := meta.(*ArmClient).dnsClient
-	ctx := meta.(*ArmClient).StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resGroup := id.ResourceGroup
@@ -140,7 +138,7 @@ func resourceArmDnsARecordDelete(d *schema.ResourceData, meta interface{}) error
 
 	resp, error := dnsClient.Delete(ctx, resGroup, zoneName, name, dns.A, "")
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error deleting DNS A Record %s: %+v", name, error)
+		return diag.Errorf("Error deleting DNS A Record %s: %+v", name, error)
 	}
 
 	return nil

@@ -10,18 +10,19 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func resourceArmTemplateDeployment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmTemplateDeploymentCreate,
-		Read:   resourceArmTemplateDeploymentRead,
-		Update: resourceArmTemplateDeploymentCreate,
-		Delete: resourceArmTemplateDeploymentDelete,
+		CreateContext: resourceArmTemplateDeploymentCreate,
+		ReadContext:   resourceArmTemplateDeploymentRead,
+		UpdateContext: resourceArmTemplateDeploymentCreate,
+		DeleteContext: resourceArmTemplateDeploymentDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -72,10 +73,9 @@ func resourceArmTemplateDeployment() *schema.Resource {
 	}
 }
 
-func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmTemplateDeploymentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient)
 	deployClient := client.deploymentsClient
-	ctx := client.StopContext
 
 	name := d.Get("name").(string)
 	resourceGroup := d.Get("resource_group_name").(string)
@@ -104,7 +104,7 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 	if v, ok := d.GetOk("parameters_body"); ok {
 		params, err := expandParametersBody(v.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		properties.Parameters = &params
@@ -113,7 +113,7 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 	if v, ok := d.GetOk("template_body"); ok {
 		template, err := expandTemplateBody(v.(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		properties.Template = &template
@@ -125,34 +125,33 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 
 	future, err := deployClient.CreateOrUpdate(ctx, resourceGroup, name, deployment)
 	if err != nil {
-		return fmt.Errorf("Error creating Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return diag.Errorf("Error creating Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
 	}
 
 	if err = future.WaitForCompletionRef(ctx, deployClient.Client); err != nil {
-		return fmt.Errorf("Error creating Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return diag.Errorf("Error creating Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
 	}
 
 	read, err := deployClient.Get(ctx, resourceGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error retrieving Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return diag.Errorf("Error retrieving Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Template Deployment %s (resource group %s) ID", name, resourceGroup)
+		return diag.Errorf("Cannot read Template Deployment %s (resource group %s) ID", name, resourceGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmTemplateDeploymentRead(d, meta)
+	return resourceArmTemplateDeploymentRead(ctx, d, meta)
 }
 
-func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmTemplateDeploymentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient)
 	deployClient := client.deploymentsClient
-	ctx := client.StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resourceGroup := id.ResourceGroup
 	name := id.Path["deployments"]
@@ -163,7 +162,7 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure RM Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return diag.Errorf("Error making Read request on Azure RM Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
 	}
 
 	outputs := make(map[string]string)
@@ -205,26 +204,25 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	return d.Set("outputs", outputs)
+	return diag.FromErr(d.Set("outputs", outputs))
 }
 
-func resourceArmTemplateDeploymentDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmTemplateDeploymentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*ArmClient)
 	deployClient := client.deploymentsClient
-	ctx := client.StopContext
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	resourceGroup := id.ResourceGroup
 	name := id.Path["deployments"]
 
 	if _, err = deployClient.Delete(ctx, resourceGroup, name); err != nil {
-		return fmt.Errorf("Error deleting Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
+		return diag.Errorf("Error deleting Template Deployment %q (Resource Group %q): %+v", name, resourceGroup, err)
 	}
 
-	return waitForTemplateDeploymentToBeDeleted(ctx, deployClient, resourceGroup, name)
+	return diag.FromErr(waitForTemplateDeploymentToBeDeleted(ctx, deployClient, resourceGroup, name))
 }
 
 // TODO: move this out into the new `helpers` structure

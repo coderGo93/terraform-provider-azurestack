@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccAzureStackDataSourceVirtualNetworkGateway_basic(t *testing.T) {
@@ -13,9 +13,9 @@ func TestAccAzureStackDataSourceVirtualNetworkGateway_basic(t *testing.T) {
 	config := testAccAzureStackDataSourceVirtualNetworkGateway_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackVirtualNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackVirtualNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

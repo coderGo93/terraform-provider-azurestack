@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/response"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func TestAccAzureStackLocalNetworkGateway_basic(t *testing.T) {
@@ -16,9 +16,9 @@ func TestAccAzureStackLocalNetworkGateway_basic(t *testing.T) {
 
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_basic(rInt, testLocation()),
@@ -42,9 +42,9 @@ func TestAccAzureStackLocalNetworkGateway_disappears(t *testing.T) {
 	rInt := acctest.RandInt()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_basic(rInt, testLocation()),
@@ -65,9 +65,9 @@ func TestAccAzureStackLocalNetworkGateway_tags(t *testing.T) {
 
 	rInt := acctest.RandInt()
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_tags(rInt, testLocation()),
@@ -87,9 +87,9 @@ func TestAccAzureStackLocalNetworkGateway_bgpSettings(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_bgpSettings(rInt, location),
@@ -110,9 +110,9 @@ func TestAccAzureStackLocalNetworkGateway_bgpSettingsDisable(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_bgpSettings(rInt, location),
@@ -144,9 +144,9 @@ func TestAccAzureStackLocalNetworkGateway_bgpSettingsEnable(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_basic(rInt, location),
@@ -178,9 +178,9 @@ func TestAccAzureStackLocalNetworkGateway_bgpSettingsComplete(t *testing.T) {
 	location := testLocation()
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureStackLocalNetworkGatewayConfig_bgpSettingsComplete(rInt, location),

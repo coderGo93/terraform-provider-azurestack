@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/terraform-providers/terraform-provider-azurestack/azurestack/helpers/utils"
 )
 
 func TestAccAzureStackAvailabilitySet_basic(t *testing.T) {
@@ -16,9 +16,9 @@ func TestAccAzureStackAvailabilitySet_basic(t *testing.T) {
 	config := testAccAzureStackAvailabilitySet_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -43,9 +43,9 @@ func TestAccAzureStackAvailabilitySet_disappears(t *testing.T) {
 	config := testAccAzureStackAvailabilitySet_basic(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -69,9 +69,9 @@ func TestAccAzureStackAvailabilitySet_withTags(t *testing.T) {
 	postConfig := testAccAzureStackAvailabilitySet_withUpdatedTags(ri, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -105,9 +105,9 @@ func TestAccAzureStackAvailabilitySet_withDomainCounts(t *testing.T) {
 	config := testAccAzureStackAvailabilitySet_withDomainCounts(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -133,9 +133,9 @@ func TestAccAzureStackAvailabilitySet_managed(t *testing.T) {
 	config := testAccAzureStackAvailabilitySet_managed(ri, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

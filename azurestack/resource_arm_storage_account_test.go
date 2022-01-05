@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestValidateArmStorageAccountType(t *testing.T) {
@@ -63,9 +63,9 @@ func TestAccAzureStackStorageAccount_basic(t *testing.T) {
 	// postConfig := testAccAzureStackStorageAccount_update(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -105,9 +105,9 @@ func TestAccAzureStackStorageAccount_premium(t *testing.T) {
 	preConfig := testAccAzureStackStorageAccount_premium(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -135,9 +135,9 @@ func TestAccAzureStackStorageAccount_disappears(t *testing.T) {
 	preConfig := testAccAzureStackStorageAccount_basic(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -162,9 +162,9 @@ func TestAccAzureStackStorageAccount_blobConnectionString(t *testing.T) {
 	preConfig := testAccAzureStackStorageAccount_basic(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -195,9 +195,9 @@ func TestAccAzureStackStorageAccount_blobEncryption(t *testing.T) {
 	postConfig := testAccAzureStackStorageAccount_blobEncryptionDisabled(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -236,9 +236,9 @@ func TestAccAzureStackStorageAccount_fileEncryption(t *testing.T) {
 	postConfig := testAccAzureStackStorageAccount_fileEncryptionDisabled(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -280,9 +280,9 @@ func TestAccAzureStackStorageAccount_enableHttpsTrafficOnly(t *testing.T) {
 	postConfig := testAccAzureStackStorageAccount_enableHttpsTrafficOnlyDisabled(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -316,9 +316,9 @@ func TestAccAzureStackStorageAccount_blobStorageWithUpdate(t *testing.T) {
 	postConfig := testAccAzureStackStorageAccount_blobStorageUpdate(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -352,9 +352,9 @@ func TestAccAzureStackStorageAccount_storageV2WithUpdate(t *testing.T) {
 	postConfig := testAccAzureStackStorageAccount_storageV2Update(ri, rs, location)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -383,9 +383,9 @@ func TestAccAzureStackStorageAccount_NonStandardCasing(t *testing.T) {
 	preConfig := testAccAzureStackStorageAccount_nonStandardCasing(ri, rs, testLocation())
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureStackStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProvidersFactories,
+		CheckDestroy:      testCheckAzureStackStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
