@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/compute/mgmt/compute"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -2999,7 +2999,8 @@ func testCheckAzureStackVirtualMachineDisappears(name string) resource.TestCheck
 		client := testAccProvider.Meta().(*ArmClient).vmClient
 		ctx := testAccProvider.Meta().(*ArmClient).StopContext
 
-		future, err := client.Delete(ctx, resourceGroup, vmName)
+		var forceDelete *bool = nil
+		future, err := client.Delete(ctx, resourceGroup, vmName, forceDelete)
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on vmClient: %+v", err)
 		}

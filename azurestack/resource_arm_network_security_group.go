@@ -3,7 +3,7 @@ package azurestack
 import (
 	"context"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/network/mgmt/network"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/network/mgmt/network"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"

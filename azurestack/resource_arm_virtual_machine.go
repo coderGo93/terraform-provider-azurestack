@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/compute/mgmt/compute"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -758,7 +758,8 @@ func resourceArmVirtualMachineDelete(ctx context.Context, d *schema.ResourceData
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	future, err := client.Delete(ctx, resGroup, name)
+	var forceDeletion *bool = nil
+	future, err := client.Delete(ctx, resGroup, name, forceDeletion)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -200,7 +201,7 @@ func testCheckAzureStackAvailabilitySetDisappears(name string) resource.TestChec
 		ctx := testAccProvider.Meta().(*ArmClient).StopContext
 		resp, err := client.Delete(ctx, resourceGroup, availSetName)
 		if err != nil {
-			if !utils.ResponseWasNotFound(resp.Response) {
+			if !response.WasNotFound(resp.Response) {
 				return fmt.Errorf("Bad: Delete on availSetClient: %+v", err)
 			}
 		}

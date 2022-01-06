@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/compute/mgmt/compute"
 	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -127,7 +127,7 @@ func resourceArmManagedDiskCreateUpdate(ctx context.Context, d *schema.ResourceD
 			OsType: compute.OperatingSystemTypes(osType),
 		},
 		Sku: &compute.DiskSku{
-			Name: compute.StorageAccountTypes(storageAccountType),
+			Name: compute.DiskStorageAccountTypes(storageAccountType),
 		},
 		Tags: *expandedTags,
 	}

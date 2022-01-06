@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/compute/mgmt/compute"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
@@ -108,8 +108,8 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					string(compute.Automatic),
-					string(compute.Manual),
+					string(compute.UpgradeModeAutomatic),
+					string(compute.UpgradeModeManual),
 					// This Enum is not defined on the 2016-03-30 service
 					// Using a regular string instead
 					"Rolling",
@@ -1553,7 +1553,7 @@ func expandAzureStackVirtualMachineScaleSetsStorageProfileDataDisk(d *schema.Res
 		if managedDiskType != "" {
 			managedDiskVMSS.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
 		} else {
-			managedDiskVMSS.StorageAccountType = compute.StandardLRS
+			managedDiskVMSS.StorageAccountType = compute.StorageAccountTypesStandardLRS
 		}
 
 		// assume that data disks in VMSS can only be Managed Disks
