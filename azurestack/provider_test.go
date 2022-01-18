@@ -19,6 +19,9 @@ func init() {
 	testAccProviders = map[string]*schema.Provider{
 		"azurestack": testAccProvider,
 	}
+	testAccProvidersFactories = map[string]func() (*schema.Provider, error){
+		"azurestack": func() (*schema.Provider, error) { return testAccProvider, nil },
+	}
 }
 
 func TestProvider(t *testing.T) {
