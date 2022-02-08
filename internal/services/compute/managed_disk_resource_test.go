@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/compute/mgmt/compute"
 	"github.com/hashicorp/go-azure-helpers/lang/pointer"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/clients"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/services/compute/parse"
@@ -207,30 +207,6 @@ func TestAccManagedDisk_attachedStorageTypeUpdate(t *testing.T) {
 	})
 }
 
-func TestAccManagedDisk_attachedTierUpdate(t *testing.T) {
-	data := acceptance.BuildTestData(t, "azurestack_managed_disk", "test")
-	r := ManagedDiskResource{}
-
-	data.ResourceTest(t, r, []acceptance.TestStep{
-		{
-			Config: r.tierUpdateWhileAttached(data, "P10"),
-			Check: acceptance.ComposeTestCheckFunc(
-				check.That(data.ResourceName).ExistsInAzure(r),
-				check.That(data.ResourceName).Key("tier").HasValue("P10"),
-			),
-		},
-		data.ImportStep(),
-		{
-			Config: r.tierUpdateWhileAttached(data, "P20"),
-			Check: acceptance.ComposeTestCheckFunc(
-				check.That(data.ResourceName).ExistsInAzure(r),
-				check.That(data.ResourceName).Key("tier").HasValue("P20"),
-			),
-		},
-		data.ImportStep(),
-	})
-}
-
 func (ManagedDiskResource) Exists(ctx context.Context, clients *clients.Client, state *pluginsdk.InstanceState) (*bool, error) {
 	id, err := parse.ManagedDiskID(state.ID)
 	if err != nil {
@@ -249,7 +225,8 @@ func (ManagedDiskResource) destroyVirtualMachine(ctx context.Context, client *cl
 	vmName := state.Attributes["name"]
 	resourceGroup := state.Attributes["resource_group_name"]
 
-	future, err := client.Compute.VMClient.Delete(ctx, resourceGroup, vmName)
+	var forceDeletion *bool = nil
+	future, err := client.Compute.VMClient.Delete(ctx, resourceGroup, vmName, forceDeletion)
 	if err != nil {
 		return fmt.Errorf("Bad: Delete on vmClient: %+v", err)
 	}
@@ -327,7 +304,7 @@ resource "azurestack_managed_disk" "test" {
   storage_account_type = "Standard_LRS"
   create_option        = "Empty"
   disk_size_gb         = "1"
-  zones                = ["1"]
+  #zones                = ["1"]
 
   tags = {
     environment = "acctest"
@@ -538,33 +515,6 @@ resource "azurestack_virtual_machine_data_disk_attachment" "test" {
 `, r.templateAttached(data), data.RandomInteger, diskSize)
 }
 
-func (r ManagedDiskResource) tierUpdateWhileAttached(data acceptance.TestData, tier string) string {
-	return fmt.Sprintf(`
-provider "azurestack" {
-  features {}
-}
-
-%s
-
-resource "azurestack_managed_disk" "test" {
-  name                 = "%d-disk1"
-  location             = azurestack_resource_group.test.location
-  resource_group_name  = azurestack_resource_group.test.name
-  storage_account_type = "Premium_LRS"
-  create_option        = "Empty"
-  disk_size_gb         = 10
-  tier                 = "%s"
-}
-
-resource "azurestack_virtual_machine_data_disk_attachment" "test" {
-  managed_disk_id    = azurestack_managed_disk.test.id
-  virtual_machine_id = azurestack_linux_virtual_machine.test.id
-  lun                = "0"
-  caching            = "None"
-}
-`, r.templateAttached(data), data.RandomInteger, tier)
-}
-
 func (r ManagedDiskResource) storageTypeUpdateWhilstAttached(data acceptance.TestData, storageAccountType string) string {
 	return fmt.Sprintf(`
 provider "azurestack" {
@@ -628,7 +578,7 @@ resource "azurestack_linux_virtual_machine" "test" {
   name                            = "acctestvm-%d"
   resource_group_name             = azurestack_resource_group.test.name
   location                        = azurestack_resource_group.test.location
-  size                            = "Standard_D2s_v3"
+  size                            = "Standard_D2_v3"
   admin_username                  = "adminuser"
   admin_password                  = "Password1234!"
   disable_password_authentication = false

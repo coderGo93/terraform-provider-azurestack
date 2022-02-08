@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2019-03-01/compute/mgmt/compute"
+	"github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/compute/mgmt/compute"
 	"github.com/hashicorp/go-azure-helpers/lang/pointer"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/clients"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/services/compute/parse"
@@ -469,7 +469,7 @@ resource "azurestack_virtual_machine" "test" {
   location              = azurestack_resource_group.test.location
   resource_group_name   = azurestack_resource_group.test.name
   network_interface_ids = [azurestack_network_interface.test.id]
-  vm_size               = "Standard_M64s"
+  vm_size               = "Standard_DS13"
 
   storage_image_reference {
     publisher = "Canonical"
