@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/az/resourceid"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/az/tags"
-	"github.com/hashicorp/terraform-provider-azurestack/internal/az/zones"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/clients"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/services/compute/parse"
 	"github.com/hashicorp/terraform-provider-azurestack/internal/services/compute/validate"
@@ -59,8 +58,6 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 			"location": commonschema.Location(),
 
 			"resource_group_name": commonschema.ResourceGroupName(),
-
-			"zones": zones.SchemaZones(),
 
 			"identity": {
 				Type:     pluginsdk.TypeList,
@@ -202,6 +199,7 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 					string(compute.Low),
 					string(compute.Regular),
 				}, true),
+				Deprecated: "not yet supported",
 			},
 
 			"eviction_policy": {
@@ -212,6 +210,7 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 					string(compute.Deallocate),
 					string(compute.Delete),
 				}, false),
+				Deprecated: "not yet supported because of priority",
 			},
 
 			"os_profile": {
@@ -763,7 +762,6 @@ func virtualMachineScaleSetCreateUpdate(d *pluginsdk.ResourceData, meta interfac
 
 	location := location.Normalize(d.Get("location").(string))
 	t := d.Get("tags").(map[string]interface{})
-	zones := zones.ExpandZones(d.Get("zones").([]interface{}))
 
 	sku := expandVirtualMachineScaleSetSku(d)
 
@@ -839,7 +837,6 @@ func virtualMachineScaleSetCreateUpdate(d *pluginsdk.ResourceData, meta interfac
 		Tags:                             tags.Expand(t),
 		Sku:                              sku,
 		VirtualMachineScaleSetProperties: &scaleSetProps,
-		Zones:                            zones,
 	}
 
 	if _, ok := d.GetOk("identity"); ok {
@@ -892,7 +889,6 @@ func virtualMachineScaleSetRead(d *pluginsdk.ResourceData, meta interface{}) err
 	d.Set("name", id.Name)
 	d.Set("resource_group_name", id.ResourceGroup)
 	d.Set("location", location.NormalizeNilable(resp.Location))
-	d.Set("zones", resp.Zones)
 
 	if err := d.Set("sku", flattenazurestackVirtualMachineScaleSetSku(resp.Sku)); err != nil {
 		return fmt.Errorf("[DEBUG] setting `sku`: %#v", err)
