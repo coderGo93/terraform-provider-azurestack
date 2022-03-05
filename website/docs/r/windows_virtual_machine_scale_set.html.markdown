@@ -1,14 +1,14 @@
 ---
 subcategory: "Compute"
 layout: "azurestack"
-page_title: "Azure Resource Manager: azurestack_linux_virtual_machine_scale_set"
+page_title: "Azure Resource Manager: azurestack_windows_virtual_machine_scale_set"
 description: |-
-  Manages a Linux Virtual Machine Scale Set.
+  Manages a Windows Virtual Machine Scale Set.
 ---
 
-# azurestack_linux_virtual_machine_scale_set
+# azurestack_windows_virtual_machine_scale_set
 
-Manages a Linux Virtual Machine Scale Set.
+Manages a Windows Virtual Machine Scale Set.
 
 ## Disclaimers
 
@@ -18,9 +18,11 @@ Manages a Linux Virtual Machine Scale Set.
 
 -> **NOTE:** Terraform will automatically update & reimage the nodes in the Scale Set (if Required) during an Update - this behaviour can be configured [using the `features` setting within the Provider block](https://registry.terraform.io/providers/hashicorp/azurestack/latest/docs#features).
 
+~> **NOTE:** This resource does not support Unmanaged Disks. If you need to use Unmanaged Disks you can continue to use [the `azurestack_virtual_machine_scale_set` resource](virtual_machine_scale_set.html) instead
+
 ## Example Usage
 
-This example provisions a basic Linux Virtual Machine Scale Set on an internal network. Additional examples of how to use the `azurestack_linux_virtual_machine_scale_set` resource can be found [in the ./examples/vm-scale-set/linux` directory within the Github Repository](https://github.com/hashicorp/terraform-provider-azurestack/tree/main/examples/vm-scale-set/linux).
+This example provisions a basic Windows Virtual Machine Scale Set on an internal network. Additional examples of how to use the `azurestack_windows_virtual_machine_scale_set` resource can be found [in the ./examples/vm-scale-set/windows` directory within the Github Repository](https://github.com/hashicorp/terraform-provider-azurestack/tree/main/examples/vm-scale-set/windows).
 
 ```hcl
 provider "azurestack" {
@@ -46,23 +48,19 @@ resource "azurestack_subnet" "internal" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-resource "azurestack_linux_virtual_machine_scale_set" "example" {
+resource "azurestack_windows_virtual_machine_scale_set" "example" {
   name                = "example-vmss"
   resource_group_name = azurestack_resource_group.example.name
   location            = azurestack_resource_group.example.location
   sku                 = "Standard_F2"
   instances           = 1
+  admin_password      = "P@55w0rd1234!"
   admin_username      = "adminuser"
 
-  admin_ssh_key {
-    username   = "adminuser"
-    public_key = file("~/.ssh/id_rsa.pub")
-  }
-
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2016-Datacenter-Server-Core"
     version   = "latest"
   }
 
@@ -88,11 +86,13 @@ resource "azurestack_linux_virtual_machine_scale_set" "example" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Linux Virtual Machine Scale Set. Changing this forces a new resource to be created.
+* `name` - (Required) The name of the Windows Virtual Machine Scale Set. Changing this forces a new resource to be created.
 
-* `location` - (Required) The Azure location where the Linux Virtual Machine Scale Set should exist. Changing this forces a new resource to be created.
+* `location` - (Required) The Azure location where the Windows Virtual Machine Scale Set should exist. Changing this forces a new resource to be created.
 
-* `resource_group_name` - (Required) The name of the Resource Group in which the Linux Virtual Machine Scale Set should be exist. Changing this forces a new resource to be created.
+* `resource_group_name` - (Required) The name of the Resource Group in which the Windows Virtual Machine Scale Set should be exist. Changing this forces a new resource to be created.
+
+* `admin_password` - (Required) The Password which should be used for the local-administrator on this Virtual Machine. Changing this forces a new resource to be created.
 
 * `admin_username` - (Required) The username of the local administrator on each Virtual Machine Scale Set instance. Changing this forces a new resource to be created.
 
@@ -110,15 +110,7 @@ The following arguments are supported:
 
 * `additional_capabilities` - (Optional) A `additional_capabilities` block as defined below.
 
-* `admin_password` - (Optional) The Password which should be used for the local-administrator on this Virtual Machine. Changing this forces a new resource to be created.
-
--> **NOTE:** When an `admin_password` is specified `disable_password_authentication` must be set to `false`.
-
-~> **NOTE:** One of either `admin_password` or `admin_ssh_key` must be specified.
-
-* `admin_ssh_key` - (Optional) One or more `admin_ssh_key` blocks as defined below.
-
-~> **NOTE:** One of either `admin_password` or `admin_ssh_key` must be specified.
+* `additional_unattend_content` - (Optional) One or more `additional_unattend_content` blocks as defined below.
 
 * `automatic_os_upgrade_policy` - (Optional) A `automatic_os_upgrade_policy` block as defined below. This can only be specified when `upgrade_mode` is set to `Automatic`.
 
@@ -136,13 +128,9 @@ The following arguments are supported:
 
 * `data_disk` - (Optional) One or more `data_disk` blocks as defined below.
 
-* `disable_password_authentication` - Should Password Authentication be disabled on this Virtual Machine Scale Set? Defaults to `true`.
-
--> In general we'd recommend using SSH Keys for authentication rather than Passwords - but there's tradeoff's to each - please [see this thread for more information](https://security.stackexchange.com/questions/69407/why-is-using-an-ssh-key-more-secure-than-using-passwords).
-
--> **NOTE:** When an `admin_password` is specified `disable_password_authentication` must be set to `false`.
-
 * `do_not_run_extensions_on_overprovisioned_machines` - (Optional) Should Virtual Machine Extensions be run on Overprovisioned Virtual Machines in the Scale Set? Defaults to `false`.
+
+* `enable_automatic_updates` - (Optional) Are automatic updates enabled for this Virtual Machine? Defaults to `true`.
 
 * `encryption_at_host_enabled` - (Optional) Should all of the disks (including the temp disk) attached to this Virtual Machine be encrypted by enabling Encryption at Host?
 
@@ -150,13 +138,9 @@ The following arguments are supported:
 
 * `extensions_time_budget` - (Optional) Specifies the duration allocated for all extensions to start. The time duration should be between `15` minutes and `120` minutes (inclusive) and should be specified in ISO 8601 format. Defaults to `90` minutes (`PT1H30M`).
 
-* `eviction_policy` - (Optional) The Policy which should be used Virtual Machines are Evicted from the Scale Set. Changing this forces a new resource to be created.
-
--> **NOTE:** This can only be configured when `priority` is set to `Spot`.
-
 * `health_probe_id` - (Optional) The ID of a Load Balancer Probe which should be used to determine the health of an instance. This is Required and can only be specified when `upgrade_mode` is set to `Automatic` or `Rolling`.
 
--> **NOTE:** This can only be configured when `priority` is set to `Spot`.
+* `license_type` - (Optional) Specifies the type of on-premise license (also known as [Azure Hybrid Use Benefit](https://docs.microsoft.com/azure/virtual-machines/virtual-machines-windows-hybrid-use-benefit-licensing)) which should be used for this Virtual Machine Scale Set. Possible values are `None`, `Windows_Client` and `Windows_Server`.
 
 * `overprovision` - (Optional) Should Azure over-provision Virtual Machines in this Scale Set? This means that multiple Virtual Machines will be provisioned and Azure will keep the instances which become available first - which improves provisioning success rates and improves deployment time. You're not billed for these over-provisioned VM's and they don't count towards the Subscription Quota. Defaults to `true`.
 
@@ -166,11 +150,7 @@ The following arguments are supported:
 
 * `platform_fault_domain_count` - (Optional) Specifies the number of fault domains that are used by this Linux Virtual Machine Scale Set. Changing this forces a new resource to be created.
 
--> **NOTE:** When `priority` is set to `Spot` an `eviction_policy` must be specified.
-
 * `provision_vm_agent` - (Optional) Should the Azure VM Agent be provisioned on each Virtual Machine in the Scale Set? Defaults to `true`. Changing this value forces a new resource to be created.
-
-* `proximity_placement_group_id` - (Optional) The ID of the Proximity Placement Group in which the Virtual Machine Scale Set should be assigned to. Changing this forces a new resource to be created.
 
 * `rolling_upgrade_policy` - (Optional) A `rolling_upgrade_policy` block as defined below. This is Required and can only be specified when `upgrade_mode` is set to `Automatic` or `Rolling`.
 
@@ -192,7 +172,11 @@ The following arguments are supported:
 
 * `terminate_notification` - (Optional) A `terminate_notification` block as defined below.
 
+* `timezone` - (Optional) Specifies the time zone of the virtual machine, [the possible values are defined here](https://jackstromberg.com/2017/01/list-of-time-zones-consumed-by-azure/).
+
 * `upgrade_mode` - (Optional) Specifies how Upgrades (e.g. changing the Image/SKU) should be performed to Virtual Machine Instances. Possible values are `Automatic`, `Manual` and `Rolling`. Defaults to `Manual`.
+
+* `winrm_listener` - (Optional) One or more `winrm_listener` blocks as defined below.
 
 ---
 
@@ -202,13 +186,11 @@ A `additional_capabilities` block supports the following:
 
 ---
 
-A `admin_ssh_key` block supports the following:
+A `additional_unattend_content` block supports the following:
 
-* `public_key` - (Required) The Public Key which should be used for authentication, which needs to be at least 2048-bit and in `ssh-rsa` format.
+* `content` - (Required) The XML formatted content that is added to the unattend.xml file for the specified path and component. Changing this forces a new resource to be created.
 
-* `username` - (Required) The Username for which this Public SSH Key should be configured.
-
--> **NOTE:** The Azure VM Agent only allows creating SSH Keys at the path `/home/{username}/.ssh/authorized_keys` - as such this public key will be added/appended to the authorized keys file.
+* `setting` - (Required) The name of the setting to which the content applies. Possible values are `AutoLogon` and `FirstLogonCommands`. Changing this forces a new resource to be created.
 
 ---
 
@@ -232,17 +214,17 @@ A `boot_diagnostics` block supports the following:
 
 * `storage_account_uri` - (Optional) The Primary/Secondary Endpoint for the Azure Storage Account which should be used to store Boot Diagnostics, including Console Output and Screenshots from the Hypervisor.
 
--> **NOTE:** Passing a null value will utilize a Managed Storage Account to store Boot Diagnostics.
+-> **NOTE:** Passing a null value will utilize a Managed Storage Account to store Boot Diagnostics
 
 ---
 
 A `certificate` block supports the following:
 
+* `store` - (Required) The certificate store on the Virtual Machine where the certificate should be added.
+
 * `url` - (Required) The Secret URL of a Key Vault Certificate.
 
 -> **NOTE:** This can be sourced from the `secret_id` field within the `azurestack_key_vault_certificate` Resource.
-
-~> **NOTE:** The certificate must have been uploaded/created in PFX format, PEM certificates are not currently supported by Azure.
 
 ---
 
@@ -311,18 +293,6 @@ An `extension` block supports the following:
 ~> **NOTE:** Keys within the `settings` block are notoriously case-sensitive, where the casing required (e.g. TitleCase vs snakeCase) depends on the Extension being used. Please refer to the documentation for the specific Virtual Machine Extension you're looking to use for more information.
 
 -> **NOTE:** Rather than defining JSON inline [you can use the `jsonencode` interpolation function](https://www.terraform.io/docs/configuration/functions/jsonencode.html) to define this in a cleaner way.
-
----
-
-A `identity` block supports the following:
-
-* `type` - (Required) The type of Managed Identity which should be assigned to the Linux Virtual Machine Scale Set. Possible values are `SystemAssigned`, `UserAssigned` and `SystemAssigned, UserAssigned`.
-
-* `identity_ids` - (Optional) A list of User Managed Identity ID's which should be assigned to the Linux Virtual Machine Scale Set.
-
-~> **NOTE:** This is required when `type` is set to `UserAssigned`.
-
----
 
 A `ip_configuration` block supports the following:
 
@@ -454,7 +424,17 @@ A `terminate_notification` block supports the following:
 
 * `timeout` - (Optional) Length of time (in minutes, between 5 and 15) a notification to be sent to the VM on the instance metadata server till the VM gets deleted. The time duration should be specified in ISO 8601 format.
 
-~> **NOTE:** For more information about the terminate notification, please [refer to this doc](https://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-terminate-notification).
+~> For more information about the terminate notification, please [refer to this doc](https://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-terminate-notification).
+
+---
+
+A `winrm_listener` block supports the following:
+
+* `certificate_url` - (Optional) The Secret URL of a Key Vault Certificate, which must be specified when `protocol` is set to `Https`.
+
+-> **NOTE:** This can be sourced from the `secret_id` field within the `azurestack_key_vault_certificate` Resource.
+
+* `protocol` - (Required) The Protocol of the WinRM Listener. Possible values are `Http` and `Https`.
 
 ---
 
@@ -472,24 +452,23 @@ A `terminate_notification` block supports the following:
 
 In addition to all arguments above, the following attributes are exported:
 
-* `id` - The ID of the Linux Virtual Machine Scale Set.
+* `id` - The ID of the Windows Virtual Machine Scale Set.
 
 * `unique_id` - The Unique ID for this Windows Virtual Machine Scale Set.
-
 
 ## Timeouts
 
 The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration/resources.html#timeouts) for certain actions:
 
-* `create` - (Defaults to 60 minutes) Used when creating the Linux Virtual Machine Scale Set.
-* `read` - (Defaults to 5 minutes) Used when reading the Linux Virtual Machine Scale Set.
-* `update` - (Defaults to 60 minutes) Used when updating (and rolling the instances of) the Linux Virtual Machine Scale Set (e.g. when changing SKU).
-* `delete` - (Defaults to 60 minutes) Used when deleting the Linux Virtual Machine Scale Set.
+* `create` - (Defaults to 60 minutes) Used when creating the Windows Virtual Machine Scale Set.
+* `read` - (Defaults to 5 minutes) Used when reading the Windows Virtual Machine Scale Set.
+* `update` - (Defaults to 60 minutes) Used when updating (and rolling the instances of) the Windows Virtual Machine Scale Set (e.g. when changing SKU).
+* `delete` - (Defaults to 60 minutes) Used when deleting the Windows Virtual Machine Scale Set.
 
 ## Import
 
-Linux Virtual Machine Scale Sets can be imported using the `resource id`, e.g.
+Windows Virtual Machine Scale Sets can be imported using the `resource id`, e.g.
 
 ```shell
-terraform import azurestack_linux_virtual_machine_scale_set.example /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Compute/virtualMachineScaleSets/scaleset1
+terraform import azurestack_windows_virtual_machine_scale_set.example /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Compute/virtualMachineScaleSets/scaleset1
 ```
