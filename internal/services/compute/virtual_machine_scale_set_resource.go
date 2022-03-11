@@ -144,9 +144,10 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 			},
 
 			"rolling_upgrade_policy": {
-				Type:     pluginsdk.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:       pluginsdk.TypeList,
+				Optional:   true,
+				MaxItems:   1,
+				Deprecated: "not supported",
 				Elem: &pluginsdk.Resource{
 					Schema: map[string]*pluginsdk.Schema{
 						"max_batch_instance_percent": {
@@ -394,8 +395,9 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 						},
 
 						"accelerated_networking": {
-							Type:     pluginsdk.TypeBool,
-							Optional: true,
+							Type:       pluginsdk.TypeBool,
+							Optional:   true,
+							Deprecated: "not supported",
 						},
 
 						"ip_forwarding": {
@@ -473,9 +475,10 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 									},
 
 									"public_ip_address_configuration": {
-										Type:     pluginsdk.TypeList,
-										Optional: true,
-										MaxItems: 1,
+										Type:       pluginsdk.TypeList,
+										Optional:   true,
+										MaxItems:   1,
+										Deprecated: "public ip is not supported",
 										Elem: &pluginsdk.Resource{
 											Schema: map[string]*pluginsdk.Schema{
 												"name": {
@@ -735,6 +738,8 @@ func virtualMachineScaleSet() *pluginsdk.Resource {
 		},
 
 		CustomizeDiff: pluginsdk.CustomizeDiffShim(azureRmVirtualMachineScaleSetCustomizeDiff),
+
+		DeprecationMessage: "use `linux_virtual_machine_scale_set` or `windows_virtual_machine_scale_set` instead",
 	}
 }
 
